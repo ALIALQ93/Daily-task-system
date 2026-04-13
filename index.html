@@ -1,0 +1,2551 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>تقرير المهام اليومية — النظام</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #F5F4F0;
+    --surface: #FFFFFF;
+    --border: #E2E0D8;
+    --border-focus: #1A1A1A;
+    --text-primary: #1A1A1A;
+    --text-secondary: #6B6860;
+    --text-muted: #A8A69E;
+    --accent: #1A1A1A;
+    --accent-light: #F0EFE8;
+    --green: #1D9E75;
+    --green-light: #E1F5EE;
+    --amber: #BA7517;
+    --amber-light: #FAEEDA;
+    --blue: #185FA5;
+    --blue-light: #E6F1FB;
+    --red: #A32D2D;
+    --red-light: #FCEBEB;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+
+  body {
+    font-family: 'IBM Plex Sans Arabic', sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+    padding: 2rem 1rem;
+  }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  .auth-wrap {
+    max-width: 420px;
+    margin: 4rem auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+  }
+
+  .auth-wrap h2 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .auth-wrap p.hint {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 18px;
+    line-height: 1.55;
+  }
+
+  .auth-wrap .field { margin-bottom: 14px; }
+
+  .uid-preview {
+    font-family: ui-monospace, monospace;
+    font-size: 12px;
+    background: var(--bg);
+    padding: 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    word-break: break-all;
+    margin-bottom: 12px;
+  }
+
+  .app-shell .page { max-width: 960px; margin: 0 auto; }
+
+  .top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 1.25rem;
+  }
+
+  .top-bar-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .nav-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .nav-tabs button {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    padding: 8px 14px;
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: background .12s, border-color .12s, color .12s;
+  }
+
+  .nav-tabs button:hover {
+    background: var(--bg);
+    color: var(--text-primary);
+  }
+
+  .nav-tabs button.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+
+  .user-pill {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .user-pill .role-badge {
+    background: var(--accent-light);
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 11px;
+  }
+
+  .section-view { display: none; }
+  .section-view.active { display: block; }
+
+  .page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .page-header-left { display: flex; flex-direction: column; gap: 4px; }
+
+  .company-tag {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .page-title {
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+  }
+
+  .page-subtitle {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+
+  .date-display {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px 14px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .lang-select {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 4px 8px;
+    font-size: 11px;
+    background: var(--surface);
+    color: var(--text-secondary);
+    cursor: pointer;
+  }
+
+  .date-display .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    display: inline-block;
+  }
+
+  .summary-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 2rem;
+  }
+
+  .scard {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+
+  .scard-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 500;
+    margin-bottom: 6px;
+    letter-spacing: 0.03em;
+  }
+
+  .scard-val {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+
+  .scard-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    background: #FAFAF8;
+  }
+
+  .panel-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .panel-icon {
+    width: 22px; height: 22px;
+    background: var(--accent-light);
+    border-radius: 5px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+  }
+
+  .btn-add {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 7px 14px;
+    font-size: 12px;
+    font-family: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex; align-items: center; gap: 6px;
+    transition: opacity .15s;
+  }
+
+  .btn-add:hover { opacity: .85; }
+
+  .tasks-list { padding: 0; }
+
+  .task-row {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    transition: background .12s;
+  }
+
+  .task-row:last-child { border-bottom: none; }
+  .task-row:hover { background: #FAFAF8; }
+
+  .task-title-row {
+    display: grid;
+    grid-template-columns: 36px 1fr;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .task-row-top {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) 36px;
+    gap: 10px;
+    align-items: start;
+    margin-bottom: 6px;
+  }
+
+  .task-row-bottom { padding-right: 46px; }
+
+  label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    letter-spacing: 0.03em;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="time"],
+  input[type="date"],
+  select,
+  textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color .15s, background .15s;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--border-focus);
+    background: var(--surface);
+  }
+
+  textarea {
+    resize: none;
+    min-height: 64px;
+    line-height: 1.6;
+  }
+
+  .num-cell {
+    display: flex;
+    align-items: flex-start;
+    padding-top: 22px;
+  }
+
+  .task-num {
+    width: 28px; height: 28px;
+    background: var(--accent-light);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  .cat-select { position: relative; }
+
+  .cat-select select { padding-right: 28px; cursor: pointer; }
+
+  .cat-select::after {
+    content: '▾';
+    position: absolute;
+    left: 9px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 11px;
+    color: var(--text-muted);
+    pointer-events: none;
+  }
+
+  .pct-row { padding: 0 46px 10px 46px; }
+
+  .pct-group-wide {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .pct-group-wide input[type="range"] { display: none; }
+
+  .pct-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .pct-btn {
+    width: 26px;
+    height: 26px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-secondary);
+    font-size: 15px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background .12s, border-color .12s, color .12s;
+  }
+
+  .pct-btn:hover {
+    background: var(--bg);
+    border-color: var(--text-muted);
+    color: var(--text-primary);
+  }
+
+  .pct-value-badge {
+    min-width: 44px;
+    text-align: center;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: var(--accent-light);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .bar-mini { height: 3px; border-radius: 99px; margin-top: 4px; transition: width .3s, background .3s; }
+
+  .btn-del {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    width: 28px; height: 28px;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+    margin-top: 20px;
+    transition: background .12s, color .12s, border-color .12s;
+  }
+
+  .btn-del:hover {
+    background: var(--red-light);
+    color: var(--red);
+    border-color: #F09595;
+  }
+
+  .footer-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    background: #FAFAF8;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .btn-outline {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px 18px;
+    font-size: 13px;
+    font-family: inherit;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background .12s, border-color .12s;
+  }
+
+  .btn-outline:hover { background: var(--bg); border-color: var(--text-muted); }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 9px 22px;
+    font-size: 13px;
+    font-family: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex; align-items: center; gap: 7px;
+    transition: opacity .15s;
+  }
+
+  .btn-primary:hover { opacity: .85; }
+
+  .meta-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 1.5rem;
+  }
+
+  .meta-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: #1A1A1A;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 500;
+    transition: transform .3s ease;
+    z-index: 999;
+    max-width: 90vw;
+    text-align: center;
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  .legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--text-secondary);
+  }
+
+  .legend-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+  }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .data-table th, .data-table td {
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+    text-align: right;
+  }
+
+  .data-table th {
+    background: #FAFAF8;
+    font-weight: 600;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .loading-text {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-secondary);
+    font-size: 14px;
+  }
+
+  .error-banner {
+    background: var(--red-light);
+    color: var(--red);
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    margin-bottom: 12px;
+    display: none;
+  }
+
+  .error-banner.show { display: block; }
+
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(26, 26, 26, 0.45);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+
+  .modal-overlay.show {
+    display: flex;
+  }
+
+  .modal-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    max-width: 440px;
+    width: 100%;
+    max-height: 90vh;
+    overflow: auto;
+    box-shadow: 0 12px 40px rgba(0,0,0,.12);
+  }
+
+  .modal-card.modal-wide {
+    max-width: 520px;
+  }
+
+  .tasks-work-table td {
+    vertical-align: middle;
+    font-size: 12px;
+  }
+
+  .modal-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    background: #FAFAF8;
+  }
+
+  .modal-card-header h3 {
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .modal-close {
+    background: none;
+    border: none;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    color: var(--text-muted);
+    padding: 0 4px;
+  }
+
+  .modal-close:hover { color: var(--text-primary); }
+
+  .modal-body { padding: 20px; }
+
+  .modal-body .field { margin-bottom: 14px; }
+
+  .modal-body .hint {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin-bottom: 16px;
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 18px;
+    flex-wrap: wrap;
+  }
+
+  .btn-table {
+    font-size: 12px;
+    padding: 5px 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    cursor: pointer;
+    font-family: inherit;
+    margin-left: 6px;
+  }
+
+  .btn-table:hover { background: var(--bg); }
+
+  .btn-table.danger:hover {
+    background: var(--red-light);
+    border-color: #F09595;
+    color: var(--red);
+  }
+
+  .uid-mono {
+    font-family: ui-monospace, monospace;
+    font-size: 11px;
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    direction: ltr;
+    text-align: left;
+  }
+
+  .tasks-inner-screen[hidden] {
+    display: none !important;
+  }
+
+  .report-screen-head {
+    display: flex;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .report-screen-head .btn-back-hub {
+    margin-top: 4px;
+    flex-shrink: 0;
+  }
+
+  .report-screen-head .page-header-left {
+    flex: 1;
+    min-width: 200px;
+  }
+
+  #tasks-report-screen .meta-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  #tasks-report-screen input[readonly]#report-code-display {
+    cursor: default;
+    color: var(--text-secondary);
+  }
+
+  .tasks-hub-cta {
+    text-align: center;
+    padding: 28px 20px;
+  }
+
+  @media (max-width: 720px) {
+    .summary-row { grid-template-columns: 1fr 1fr; }
+    .task-row-top { grid-template-columns: 1fr 1fr; }
+    .meta-grid { grid-template-columns: 1fr; }
+    #tasks-report-screen .meta-grid { grid-template-columns: 1fr; }
+  }
+
+  @page { size: A4 portrait; margin: 8mm; }
+
+  @media print {
+    html, body { padding: 0; margin: 0; }
+    body { background: #ffffff; font-size: 11px; }
+    .page { max-width: 100%; margin: 0; }
+    .top-bar, .nav-tabs, .user-pill, .btn-add, .btn-del, .footer-actions, #lang-select, .toast, .no-print, #user-modal, #task-modal { display: none !important; }
+    .page-header { margin-bottom: 8px; }
+    .summary-row { margin-bottom: 8px; }
+    .meta-panel, .panel { margin-bottom: 6px; padding: 10px 12px; }
+    .tasks-work-table tr { page-break-inside: avoid; }
+    #tasks-hub-screen { display: none !important; }
+    #tasks-report-screen { display: block !important; }
+    input, select, textarea { padding: 4px 6px; font-size: 11px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="screen-loading" class="screen active">
+  <p class="loading-text">جاري التحميل…</p>
+</div>
+
+<div id="screen-setup" class="screen">
+  <div class="auth-wrap">
+    <h2>الإعداد الأولي لمدير النظام</h2>
+    <p class="hint">يجب أن يكون حساب مدير النظام مُنشأ مسبقاً في Firebase Authentication. سجّل الدخول بنفس الحساب، ثم أدخل <strong>نفس UID</strong> الظاهر في وحدة تحكم Firebase للتحقق.</p>
+    <div id="setup-error" class="error-banner"></div>
+    <div id="setup-step-login">
+      <div class="field">
+        <label>البريد الإلكتروني</label>
+        <input type="email" id="setup-email" autocomplete="username">
+      </div>
+      <div class="field">
+        <label>كلمة المرور</label>
+        <input type="password" id="setup-password" autocomplete="current-password">
+      </div>
+      <button type="button" class="btn-primary" id="setup-btn-login" style="width:100%;justify-content:center;">تسجيل الدخول</button>
+    </div>
+    <div id="setup-step-uid" style="display:none;">
+      <p class="hint">معرّف المستخدم الحالي (UID) للجلسة:</p>
+      <div class="uid-preview" id="setup-uid-live"></div>
+      <div class="field">
+        <label>أدخل UID مدير النظام للمطابقة</label>
+        <input type="text" id="setup-uid-input" placeholder="الصق من Firebase Console" dir="ltr" style="text-align:left;">
+      </div>
+      <button type="button" class="btn-primary" id="setup-btn-confirm" style="width:100%;justify-content:center;margin-top:8px;">تأكيد وحفظ إعدادات النظام</button>
+      <button type="button" class="btn-outline" id="setup-btn-back" style="width:100%;margin-top:8px;">رجوع</button>
+    </div>
+  </div>
+</div>
+
+<div id="screen-login" class="screen">
+  <div class="auth-wrap">
+    <h2>تسجيل الدخول</h2>
+    <p class="hint">أدخل بيانات الحساب المسجّلة في النظام.</p>
+    <div id="login-error" class="error-banner"></div>
+    <div class="field">
+      <label>البريد الإلكتروني</label>
+      <input type="email" id="login-email" autocomplete="username">
+    </div>
+    <div class="field">
+      <label>كلمة المرور</label>
+      <input type="password" id="login-password" autocomplete="current-password">
+    </div>
+    <button type="button" class="btn-primary" id="login-btn" style="width:100%;justify-content:center;">دخول</button>
+  </div>
+</div>
+
+<div id="screen-app" class="screen app-shell">
+  <div class="page" id="print-root">
+
+    <div class="top-bar no-print">
+      <div class="nav-tabs">
+        <button type="button" class="nav-tab active" data-section="dashboard">لوحة التحكم</button>
+        <button type="button" class="nav-tab" data-section="tasks">تسجيل المهام</button>
+        <button type="button" class="nav-tab" data-section="users" id="nav-users" style="display:none;">المستخدمون</button>
+        <button type="button" class="nav-tab" data-section="reports" id="nav-reports" style="display:none;">التقارير</button>
+      </div>
+      <div class="top-bar-actions">
+        <select id="lang-select" class="lang-select" aria-label="اللغة">
+          <option value="ar">العربية</option>
+          <option value="en">English</option>
+        </select>
+        <div class="user-pill">
+          <span class="role-badge" id="header-role"></span>
+          <span id="header-email"></span>
+          <button type="button" class="btn-outline" id="btn-logout">خروج</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="section-dashboard" class="section-view active">
+      <div class="page-header">
+        <div class="page-header-left">
+          <span class="company-tag">الألباب للمقاولات العامة</span>
+          <h1 class="page-title">لوحة التحكم</h1>
+          <p class="page-subtitle" id="dash-subtitle">ملخص نشاط المهام ضمن نطاق صلاحياتك</p>
+        </div>
+        <div class="date-display">
+          <span class="dot"></span>
+          <span id="dash-today"></span>
+        </div>
+      </div>
+      <div class="summary-row">
+        <div class="scard">
+          <div class="scard-label">إجمالي المهام (اليوم)</div>
+          <div class="scard-val" id="dash-total">0</div>
+        </div>
+        <div class="scard">
+          <div class="scard-label">مكتملة 100٪</div>
+          <div class="scard-val" id="dash-done" style="color:var(--green)">0</div>
+        </div>
+        <div class="scard">
+          <div class="scard-label">قيد الإنجاز</div>
+          <div class="scard-val" id="dash-inprog" style="color:var(--amber)">0</div>
+        </div>
+        <div class="scard">
+          <div class="scard-label">متوسط الإنجاز</div>
+          <div class="scard-val" id="dash-avg">—</div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title"><div class="panel-icon">📋</div> لقطات اليوم</div>
+        </div>
+        <div style="padding:16px 20px;overflow-x:auto;">
+          <table class="data-table" id="dash-table">
+            <thead>
+              <tr>
+                <th>المستخدم</th>
+                <th>تاريخ التقرير</th>
+                <th>عدد المهام</th>
+                <th>متوسط الإنجاز</th>
+              </tr>
+            </thead>
+            <tbody id="dash-tbody"></tbody>
+          </table>
+          <p id="dash-empty" style="display:none;padding:12px;color:var(--text-muted);font-size:13px;">لا توجد بيانات لهذا اليوم.</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="section-tasks" class="section-view">
+      <div id="tasks-hub-screen" class="tasks-inner-screen">
+        <div class="page-header">
+          <div class="page-header-left">
+            <span class="company-tag" data-i18n="company_name">الألباب للمقاولات العامة</span>
+            <h1 class="page-title" data-i18n="tasks_hub_title">تسجيل المهام</h1>
+            <p class="page-subtitle" data-i18n="tasks_hub_subtitle">عرض التقارير المحفوظة أو افتح شاشة تقرير المهام اليومية للتعديل والحفظ</p>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="tasks-hub-cta">
+            <button type="button" class="btn-primary" id="btn-open-daily-report" style="padding:12px 28px;font-size:14px;justify-content:center;">
+              <span data-i18n="btn_open_daily_report">تقرير المهام اليومية</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title"><div class="panel-icon">📑</div> <span data-i18n="saved_reports_title">تقارير المهام المحفوظة</span></div>
+            <button type="button" class="btn-outline" id="btn-refresh-my-reports" data-i18n="btn_refresh">تحديث</button>
+          </div>
+          <div style="padding:16px 20px;overflow-x:auto;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th data-i18n="rep_col_date">تاريخ التقرير</th>
+                  <th data-i18n="rep_col_code">رمز التقرير</th>
+                  <th data-i18n="rep_col_count">عدد المهام</th>
+                  <th data-i18n="rep_col_avg">متوسط الإنجاز</th>
+                  <th data-i18n="rep_col_updated">آخر تحديث</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="my-reports-tbody"></tbody>
+            </table>
+            <p id="my-reports-empty" style="display:none;padding:12px;color:var(--text-muted);font-size:13px;" data-i18n="my_reports_empty">لا توجد تقارير محفوظة بعد.</p>
+          </div>
+        </div>
+      </div>
+
+      <div id="tasks-report-screen" class="tasks-inner-screen" hidden>
+        <div class="page-header report-screen-head">
+          <button type="button" class="btn-outline btn-back-hub no-print" id="btn-back-tasks-hub" data-i18n="btn_back_tasks_hub">رجوع لتسجيل المهام</button>
+          <div class="page-header-left">
+            <span class="company-tag" data-i18n="company_name">الألباب للمقاولات العامة</span>
+            <h1 class="page-title" data-i18n="page_title">تقرير المهام اليومية</h1>
+            <p class="page-subtitle" data-i18n="page_subtitle">تسجيل وتتبع المهام المنجزة وقيد الإنجاز</p>
+          </div>
+          <div class="date-display">
+            <span class="dot"></span>
+            <span id="live-date"></span>
+          </div>
+        </div>
+
+        <div class="summary-row">
+          <div class="scard">
+            <div class="scard-label" data-i18n="summary_total">إجمالي المهام</div>
+            <div class="scard-val" id="s-total">0</div>
+          </div>
+          <div class="scard">
+            <div class="scard-label" data-i18n="summary_done">مكتملة</div>
+            <div class="scard-val" id="s-done" style="color:var(--green)">0</div>
+            <div class="scard-sub" id="s-done-pct"></div>
+          </div>
+          <div class="scard">
+            <div class="scard-label" data-i18n="summary_inprogress">قيد الإنجاز</div>
+            <div class="scard-val" id="s-inprog" style="color:var(--amber)">0</div>
+          </div>
+          <div class="scard">
+            <div class="scard-label" data-i18n="summary_avg">متوسط الإنجاز</div>
+            <div class="scard-val" id="s-avg">—</div>
+          </div>
+        </div>
+
+        <div class="meta-panel">
+          <div style="font-size:12px;font-weight:600;color:var(--text-muted);letter-spacing:.04em;margin-bottom:14px;" data-i18n="meta_title">معلومات التقرير</div>
+          <div class="meta-grid">
+            <div>
+              <label data-i18n="meta_reporter_label">اسم مُعِد التقرير</label>
+              <input type="text" id="reporter-name" data-ph="reporter_auto" placeholder="" title="">
+            </div>
+            <div>
+              <label data-i18n="meta_dept_label">القسم / المشروع</label>
+              <input type="text" id="dept" data-ph="dept_auto" placeholder="" title="">
+            </div>
+            <div>
+              <label data-i18n="meta_date_label">تاريخ التقرير</label>
+              <input type="date" id="report-date">
+            </div>
+            <div>
+              <label data-i18n="meta_report_code_label">رمز التقرير</label>
+              <input type="text" id="report-code-display" readonly dir="ltr" value="—" style="background:var(--bg);font-family:ui-monospace,monospace;font-size:13px;">
+            </div>
+          </div>
+          <p id="report-lock-notice" style="display:none;margin-top:12px;font-size:12px;color:var(--amber);line-height:1.5;" data-i18n="report_lock_notice">انتهت مهلة تعديل هذا التقرير (12 ساعة من أول حفظ). العرض للقراءة فقط.</p>
+          <div style="margin-top:14px;">
+            <label data-i18n="meta_notes_label">ملاحظات عامة</label>
+            <textarea placeholder="أي ملاحظات أو تعليقات إضافية على مجمل أعمال اليوم..." id="general-notes" style="min-height:48px;"></textarea>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <div class="panel-icon">✦</div>
+              <span data-i18n="tasks_title">قائمة المهام</span>
+            </div>
+            <button type="button" class="btn-add" id="btn-add-task" title="إضافة مهمة"><span style="font-size:18px;line-height:1;">+</span></button>
+          </div>
+          <div style="padding:0;overflow-x:auto;">
+            <table class="data-table tasks-work-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th data-i18n="task_title_label">عنوان المهمة</th>
+                  <th>الوقت</th>
+                  <th data-i18n="task_category">التصنيف</th>
+                  <th data-i18n="task_collab">المتعاون</th>
+                  <th data-i18n="task_progress">الإنجاز</th>
+                  <th>إجراءات</th>
+                </tr>
+              </thead>
+              <tbody id="tasks-table-body"></tbody>
+            </table>
+            <p id="tasks-table-empty" style="display:none;padding:16px 20px;color:var(--text-muted);font-size:13px;" data-i18n="tasks_table_empty">لا توجد مهام لهذا التاريخ. اضغط + لإضافة مهمة.</p>
+          </div>
+          <div class="footer-actions">
+            <div class="legend">
+              <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div> <span data-i18n="legend_software">برمجيات</span></div>
+              <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div> <span data-i18n="legend_finance">مالي</span></div>
+              <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div> <span data-i18n="legend_followup">متابعة</span></div>
+              <div class="legend-item"><div class="legend-dot" style="background:#888"></div> <span data-i18n="legend_admin">إداري</span></div>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+              <button type="button" class="btn-outline" id="btn-clear-tasks" data-i18n="btn_clear_all">مسح الكل</button>
+              <button type="button" class="btn-outline" id="btn-print">طباعة</button>
+              <button type="button" class="btn-outline" id="btn-pdf" data-i18n="btn_export_pdf">تصدير إلى PDF</button>
+              <button type="button" class="btn-primary" id="btn-save-report">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                <span data-i18n="btn_save_report">حفظ التقرير</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="section-users" class="section-view">
+      <div class="page-header">
+        <div class="page-header-left">
+          <span class="company-tag">إدارة</span>
+          <h1 class="page-title">المستخدمون</h1>
+          <p class="page-subtitle">أنشئ الحساب أولاً في Firebase Authentication، ثم أضف المستخدم هنا بالـ UID من وحدة التحكم. التعديل والحذف يخصان بيانات التطبيق في Firestore فقط.</p>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title"><div class="panel-icon">👤</div> قائمة المستخدمين</div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <button type="button" class="btn-add" id="btn-open-user-modal" title="إضافة مستخدم"><span style="font-size:18px;line-height:1;">+</span></button>
+            <button type="button" class="btn-outline" id="btn-refresh-users">تحديث</button>
+          </div>
+        </div>
+        <div style="padding:16px 20px;overflow-x:auto;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>UID</th>
+                <th>البريد</th>
+                <th>الاسم</th>
+                <th data-i18n="users_col_dept">القسم / المشروع</th>
+                <th>الدور</th>
+                <th>المشرف</th>
+                <th>إجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="users-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="section-reports" class="section-view">
+      <div class="page-header">
+        <div class="page-header-left">
+          <span class="company-tag">تقارير</span>
+          <h1 class="page-title">التقارير</h1>
+          <p class="page-subtitle">استعلام عن اللقطات المحفوظة حسب التاريخ</p>
+        </div>
+      </div>
+      <div class="meta-panel">
+        <div class="meta-grid">
+          <div>
+            <label>من تاريخ</label>
+            <input type="date" id="rep-from">
+          </div>
+          <div>
+            <label>إلى تاريخ</label>
+            <input type="date" id="rep-to">
+          </div>
+          <div>
+            <label>المستخدم</label>
+            <select id="rep-user"></select>
+          </div>
+        </div>
+        <button type="button" class="btn-primary" id="btn-run-report" style="margin-top:14px;">عرض</button>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title"><div class="panel-icon">📊</div> النتائج</div>
+        </div>
+        <div style="padding:16px 20px;overflow-x:auto;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>المستخدم</th>
+                <th>التاريخ</th>
+                <th>رمز التقرير</th>
+                <th>المهام</th>
+                <th>متوسط الإنجاز</th>
+                <th>آخر تحديث</th>
+              </tr>
+            </thead>
+            <tbody id="rep-tbody"></tbody>
+          </table>
+          <p id="rep-empty" style="display:none;padding:12px;color:var(--text-muted);font-size:13px;">لا توجد نتائج.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="user-modal" class="modal-overlay no-print" aria-hidden="true">
+  <div class="modal-card" role="dialog" aria-labelledby="user-modal-title" id="user-modal-card">
+    <div class="modal-card-header">
+      <h3 id="user-modal-title">إضافة مستخدم</h3>
+      <button type="button" class="modal-close" id="user-modal-close" aria-label="إغلاق">×</button>
+    </div>
+    <div class="modal-body">
+      <p class="hint" id="user-modal-hint">يُنشأ الحساب في Authentication من وحدة تحكم Firebase. انسخ <strong>User UID</strong> والصقه هنا، ثم أكمل بيانات العرض في التطبيق.</p>
+      <div id="user-modal-error" class="error-banner"></div>
+      <div class="field" id="user-modal-uid-wrap">
+        <label>معرّف المستخدم (UID)</label>
+        <input type="text" id="modal-user-uid" dir="ltr" style="text-align:left;" placeholder="من Firebase → Authentication → المستخدم" autocomplete="off">
+      </div>
+      <div class="field">
+        <label>البريد (للعرض)</label>
+        <input type="email" id="modal-user-email" dir="ltr" style="text-align:left;" placeholder="كما في Authentication">
+      </div>
+      <div class="field">
+        <label>الاسم الظاهر</label>
+        <input type="text" id="modal-user-display" placeholder="في التقارير واللوحة">
+      </div>
+      <div class="field">
+        <label data-i18n="user_modal_dept_label">القسم / المشروع</label>
+        <input type="text" id="modal-user-dept" placeholder="">
+      </div>
+      <div class="field">
+        <label>الدور في التطبيق</label>
+        <select id="modal-user-role">
+          <option value="user">مستخدم</option>
+          <option value="supervisor">مشرف</option>
+          <option value="admin">مدير نظام</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>المشرف المسؤول (للمستخدم العادي)</label>
+        <select id="modal-user-supervisor"><option value="">—</option></select>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-outline" id="user-modal-cancel">إلغاء</button>
+        <button type="button" class="btn-primary" id="user-modal-save">حفظ</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="task-modal" class="modal-overlay no-print" aria-hidden="true">
+  <div class="modal-card modal-wide" role="dialog" aria-labelledby="task-modal-title" id="task-modal-card">
+    <div class="modal-card-header">
+      <h3 id="task-modal-title">إضافة مهمة</h3>
+      <button type="button" class="modal-close" id="task-modal-close" aria-label="إغلاق">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="task-modal-error" class="error-banner"></div>
+      <div class="field">
+        <label data-i18n="task_title_label">عنوان المهمة</label>
+        <input type="text" id="modal-task-title" data-ph="task_title" placeholder="">
+      </div>
+      <div class="meta-grid" style="grid-template-columns:1fr 1fr;">
+        <div class="field" style="margin-bottom:0;">
+          <label data-i18n="task_start_time">وقت البداية</label>
+          <input type="time" id="modal-task-start">
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label data-i18n="task_end_time">وقت الانتهاء</label>
+          <input type="time" id="modal-task-end">
+        </div>
+      </div>
+      <div class="field">
+        <label data-i18n="task_category">التصنيف</label>
+        <select id="modal-task-cat">
+          <option value="">اختر...</option>
+          <option value="برمجيات" data-i18n="cat_software">برمجيات</option>
+          <option value="مالي" data-i18n="cat_finance">مالي</option>
+          <option value="متابعة" data-i18n="cat_followup">متابعة</option>
+          <option value="إداري" data-i18n="cat_admin">إداري</option>
+        </select>
+      </div>
+      <div class="field">
+        <label data-i18n="task_collab">المتعاون</label>
+        <input type="text" id="modal-task-collab" data-ph="task_collab" placeholder="">
+      </div>
+      <div class="field">
+        <label data-i18n="task_progress">نسبة الإنجاز</label>
+        <div class="pct-controls" style="margin-top:6px;">
+          <button type="button" class="pct-btn" id="modal-task-pct-min">−</button>
+          <span id="modal-task-pv" class="pct-value-badge">0%</span>
+          <button type="button" class="pct-btn" id="modal-task-pct-plus">+</button>
+        </div>
+        <input type="range" id="modal-task-rng" min="0" max="100" step="5" value="0" style="width:100%;margin-top:8px;">
+      </div>
+      <div class="field">
+        <label data-i18n="task_details">تفاصيل وملاحظات المهمة</label>
+        <textarea id="modal-task-desc" data-ph="task_details" style="min-height:80px;"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-outline" id="task-modal-cancel">إلغاء</button>
+        <button type="button" class="btn-primary" id="task-modal-save">حفظ</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<!--
+  Firestore — قواعد مقترحة (اضبطها في Console؛ للتطوير قد تحتاج وضعاً مؤقتاً ثم تشديدها):
+
+  rules_version = '2';
+  service cloud.firestore {
+    match /databases/{database}/documents {
+      match /config/app {
+        allow read: if true;
+        allow create: if request.auth != null
+          && !exists(/databases/$(database)/documents/config/app)
+          && request.resource.data.adminUid == request.auth.uid;
+        allow update: if request.auth != null
+          && request.auth.uid == resource.data.adminUid;
+      }
+      match /users/{userId} {
+        allow read: if request.auth != null;
+        allow create, update: if request.auth != null && (
+          request.auth.uid == userId ||
+          get(/databases/$(database)/documents/config/app).data.adminUid == request.auth.uid
+        );
+        allow delete: if request.auth != null
+          && get(/databases/$(database)/documents/config/app).data.adminUid == request.auth.uid
+          && userId != get(/databases/$(database)/documents/config/app).data.adminUid;
+      }
+      match /dailySnapshots/{docId} {
+        allow read: if request.auth != null;
+        allow create, update: if request.auth != null
+          && request.resource.data.userId == request.auth.uid;
+        allow delete: if request.auth != null
+          && resource.data.userId == request.auth.uid;
+      }
+      // عداد تسلسل رموز التقارير (يُحدَّث عبر معاملة من العميل). في الإنتاج: قيّد الكتابة
+      // (مثلاً Cloud Function فقط) لأن المستخدم المتقدم قد يتلاعب بالعميل.
+      match /counters/dailyReportSequence {
+        allow read, write: if request.auth != null;
+      }
+    }
+  }
+-->
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  setDoc,
+  deleteDoc,
+  collection,
+  getDocs,
+  serverTimestamp,
+  runTransaction
+} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCIVaIzqvmcb8DHWeT9Yisv9Cr8DZ32il4",
+  authDomain: "daily-tasks-report-3cf9f.firebaseapp.com",
+  projectId: "daily-tasks-report-3cf9f",
+  storageBucket: "daily-tasks-report-3cf9f.firebasestorage.app",
+  messagingSenderId: "486634886559",
+  appId: "1:486634886559:web:ffa45eb211fb3d604559aa",
+  measurementId: "G-HMG5B31SC2"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let tasksDraft = [];
+let taskModalEditIndex = null;
+let appConfig = { adminUid: null };
+let userProfile = null;
+let allUsersCache = [];
+let userModalMode = "add";
+let userModalEditUid = null;
+
+const REPORT_LOCK_MS = 12 * 60 * 60 * 1000;
+let snapshotTimeLocked = false;
+
+const translations = {
+  ar: {
+    dir: "rtl",
+    company_name: "الألباب للمقاولات العامة",
+    page_title: "تقرير المهام اليومية",
+    page_subtitle: "تسجيل وتتبع المهام المنجزة وقيد الإنجاز",
+    summary_total: "إجمالي المهام",
+    summary_done: "مكتملة",
+    summary_inprogress: "قيد الإنجاز",
+    summary_avg: "متوسط الإنجاز",
+    meta_title: "معلومات التقرير",
+    meta_reporter_label: "اسم مُعِد التقرير",
+    meta_dept_label: "القسم / المشروع",
+    meta_date_label: "تاريخ التقرير",
+    meta_report_code_label: "رمز التقرير",
+    meta_notes_label: "ملاحظات عامة",
+    tasks_title: "قائمة المهام",
+    btn_add_task: "إضافة مهمة",
+    legend_software: "برمجيات",
+    legend_finance: "مالي",
+    legend_followup: "متابعة",
+    legend_admin: "إداري",
+    btn_clear_all: "مسح الكل",
+    btn_export_pdf: "تصدير إلى PDF",
+    task_title_label: "عنوان المهمة",
+    task_start_time: "وقت البداية",
+    task_end_time: "وقت الانتهاء",
+    task_category: "التصنيف",
+    task_collab: "المتعاون",
+    task_progress: "نسبة الإنجاز",
+    task_details: "تفاصيل وملاحظات المهمة",
+    cat_software: "برمجيات",
+    cat_finance: "مالي",
+    cat_followup: "متابعة",
+    cat_admin: "إداري",
+    ph_reporter: "الاسم الكامل",
+    ph_dept: "مثال: قسم البرمجيات",
+    ph_notes: "أي ملاحظات أو تعليقات إضافية على مجمل أعمال اليوم...",
+    ph_task_title: "اكتب عنوان المهمة...",
+    ph_task_collab: "الاسم...",
+    ph_task_details: "اكتب وصفاً تفصيلياً للمهمة والإجراءات المتخذة...",
+    tasks_hub_title: "تسجيل المهام",
+    tasks_hub_subtitle: "عرض التقارير المحفوظة أو افتح شاشة تقرير المهام اليومية للتعديل والحفظ",
+    btn_open_daily_report: "تقرير المهام اليومية",
+    btn_back_tasks_hub: "رجوع لتسجيل المهام",
+    saved_reports_title: "تقارير المهام المحفوظة",
+    btn_refresh: "تحديث",
+    rep_col_date: "تاريخ التقرير",
+    rep_col_code: "رمز التقرير",
+    rep_col_count: "عدد المهام",
+    rep_col_avg: "متوسط الإنجاز",
+    rep_col_updated: "آخر تحديث",
+    my_reports_empty: "لا توجد تقارير محفوظة بعد.",
+    btn_load_report: "فتح",
+    btn_save_report: "حفظ التقرير",
+    tasks_table_empty: "لا توجد مهام لهذا التاريخ. اضغط + لإضافة مهمة.",
+    report_lock_notice: "انتهت مهلة تعديل هذا التقرير (12 ساعة من أول حفظ). العرض للقراءة فقط.",
+    toast_empty_tasks: "لا يمكن الحفظ: أضف مهمة واحدة على الأقل بعنوان واضح.",
+    toast_task_title_required: "لا يمكن الحفظ: كل مهمة يجب أن يكون لها عنوان.",
+    toast_report_locked: "انتهت مهلة تعديل التقرير (12 ساعة من أول حفظ).",
+    toast_save_forbidden: "لا يمكن حفظ هذا التقرير.",
+    ph_reporter_auto: "من بطاقة المستخدم",
+    ph_dept_auto: "من بطاقة المستخدم",
+    users_col_dept: "القسم / المشروع",
+    user_modal_dept_label: "القسم / المشروع",
+    user_modal_dept_ph: "مثال: قسم البرمجيات — يُعرض في تقرير المهام"
+  },
+  en: {
+    dir: "ltr",
+    company_name: "Al-Albab General Contracting",
+    page_title: "Daily Tasks Report",
+    page_subtitle: "Logging and tracking completed and ongoing tasks",
+    summary_total: "Total tasks",
+    summary_done: "Completed",
+    summary_inprogress: "In progress",
+    summary_avg: "Average progress",
+    meta_title: "Report info",
+    meta_reporter_label: "Report prepared by",
+    meta_dept_label: "Department / Project",
+    meta_date_label: "Report date",
+    meta_report_code_label: "Report code",
+    meta_notes_label: "General notes",
+    tasks_title: "Tasks list",
+    btn_add_task: "Add task",
+    legend_software: "Software",
+    legend_finance: "Finance",
+    legend_followup: "Follow-up",
+    legend_admin: "Admin",
+    btn_clear_all: "Clear all",
+    btn_export_pdf: "Export to PDF",
+    task_title_label: "Task title",
+    task_start_time: "Start time",
+    task_end_time: "End time",
+    task_category: "Category",
+    task_collab: "Collaborator",
+    task_progress: "Progress",
+    task_details: "Task details & notes",
+    cat_software: "Software",
+    cat_finance: "Finance",
+    cat_followup: "Follow-up",
+    cat_admin: "Admin",
+    ph_reporter: "Full name",
+    ph_dept: "Example: Software Department",
+    ph_notes: "Any overall notes or comments about today's work...",
+    ph_task_title: "Write the task title...",
+    ph_task_collab: "Name...",
+    ph_task_details: "Write detailed description and actions taken...",
+    tasks_hub_title: "Task logging",
+    tasks_hub_subtitle: "View saved reports or open the daily tasks report screen to edit and save",
+    btn_open_daily_report: "Daily tasks report",
+    btn_back_tasks_hub: "Back to task logging",
+    saved_reports_title: "Saved task reports",
+    btn_refresh: "Refresh",
+    rep_col_date: "Report date",
+    rep_col_code: "Report code",
+    rep_col_count: "Task count",
+    rep_col_avg: "Average progress",
+    rep_col_updated: "Last updated",
+    my_reports_empty: "No saved reports yet.",
+    btn_load_report: "Open",
+    btn_save_report: "Save report",
+    tasks_table_empty: "No tasks for this date. Press + to add a task.",
+    report_lock_notice: "The edit window (12 hours from first save) has ended. This report is read-only.",
+    toast_empty_tasks: "Cannot save: add at least one task with a clear title.",
+    toast_task_title_required: "Cannot save: every task must have a title.",
+    toast_report_locked: "The edit window (12 hours from first save) has ended.",
+    toast_save_forbidden: "You cannot save this report.",
+    ph_reporter_auto: "From user profile",
+    ph_dept_auto: "From user profile",
+    users_col_dept: "Department / project",
+    user_modal_dept_label: "Department / project",
+    user_modal_dept_ph: "e.g. Software — shown on daily task report"
+  }
+};
+
+function showScreen(id) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  const el = document.getElementById(id);
+  if (el) el.classList.add("active");
+}
+
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2800);
+}
+
+function showError(elId, text) {
+  const e = document.getElementById(elId);
+  if (!e) return;
+  e.textContent = text || "";
+  e.classList.toggle("show", !!text);
+}
+
+function applyLanguage(lang) {
+  const dict = translations[lang] || translations.ar;
+  document.documentElement.lang = lang;
+  document.documentElement.dir = dict.dir || "rtl";
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    const key = el.getAttribute("data-i18n");
+    if (key && dict[key]) el.textContent = dict[key];
+  });
+  const ph = (id, k) => {
+    const n = document.getElementById(id);
+    if (n && dict[k]) n.placeholder = dict[k];
+  };
+  ph("reporter-name", "ph_reporter_auto");
+  ph("dept", "ph_dept_auto");
+  ph("general-notes", "ph_notes");
+  ph("modal-user-dept", "user_modal_dept_ph");
+  const repHint = dict.ph_reporter_auto || "";
+  const deptHint = dict.ph_dept_auto || "";
+  const rn = document.getElementById("reporter-name");
+  const dp = document.getElementById("dept");
+  if (rn) rn.title = repHint;
+  if (dp) dp.title = deptHint;
+  document.querySelectorAll('input[data-ph="task_title"]').forEach(el => {
+    if (dict.ph_task_title) el.placeholder = dict.ph_task_title;
+  });
+  document.querySelectorAll('input[data-ph="task_collab"]').forEach(el => {
+    if (dict.ph_task_collab) el.placeholder = dict.ph_task_collab;
+  });
+  document.querySelectorAll('textarea[data-ph="task_details"]').forEach(el => {
+    if (dict.ph_task_details) el.placeholder = dict.ph_task_details;
+  });
+}
+
+function formatHeaderDateFromISO(iso, lang) {
+  if (!iso) return "";
+  const [y, m, d] = iso.split("-");
+  if (!y || !m || !d) return "";
+  const dt = new Date(parseInt(y, 10), parseInt(m, 10) - 1, parseInt(d, 10));
+  if (isNaN(dt.getTime())) return "";
+  const opts = { weekday: "long", year: "numeric", month: "long", day: "numeric" };
+  const locale = lang === "en" ? "en-US" : "ar-IQ";
+  return dt.toLocaleDateString(locale, opts);
+}
+
+function escAttr(s) {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;");
+}
+
+function dailyDocId(userId, reportDate) {
+  return `${userId}_${reportDate}`;
+}
+
+function formatReportSequence(n) {
+  const v = Math.floor(Number(n));
+  const seq = Number.isFinite(v) && v > 0 ? v : 1;
+  return String(seq).padStart(3, "0");
+}
+
+function firestoreFirstSavedMs(ts) {
+  if (!ts) return 0;
+  if (typeof ts.toMillis === "function") return ts.toMillis();
+  return 0;
+}
+
+function isSnapshotTimeLocked(data) {
+  if (!data || !data.reportCode || !data.firstSavedAt) return false;
+  const t = firestoreFirstSavedMs(data.firstSavedAt);
+  if (!t) return false;
+  return Date.now() > t + REPORT_LOCK_MS;
+}
+
+function validateTasksForSave(tasks) {
+  if (!tasks || tasks.length === 0) return "toast_empty_tasks";
+  for (const t of tasks) {
+    if (!String(t.title || "").trim()) return "toast_task_title_required";
+  }
+  return null;
+}
+
+function toastI18n(key) {
+  const lang = document.getElementById("lang-select")?.value || "ar";
+  const dict = translations[lang] || translations.ar;
+  showToast(dict[key] || key);
+}
+
+function applyReportLockState(data) {
+  const codeEl = document.getElementById("report-code-display");
+  const dateInput = document.getElementById("report-date");
+  const notice = document.getElementById("report-lock-notice");
+  const hasCode = !!(data && data.reportCode);
+  if (codeEl) {
+    codeEl.value = hasCode ? String(data.reportCode) : "—";
+  }
+  const timeLocked = isSnapshotTimeLocked(data);
+  snapshotTimeLocked = timeLocked;
+  if (dateInput) {
+    dateInput.disabled = hasCode || timeLocked;
+  }
+  const nameEl = document.getElementById("reporter-name");
+  const deptEl = document.getElementById("dept");
+  if (nameEl) nameEl.disabled = true;
+  if (deptEl) deptEl.disabled = true;
+  const gn = document.getElementById("general-notes");
+  if (gn) gn.disabled = timeLocked;
+  ["btn-add-task", "btn-clear-tasks", "btn-save-report"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = timeLocked;
+  });
+  if (notice) notice.style.display = timeLocked ? "block" : "none";
+}
+
+async function loadAppConfig() {
+  const snap = await getDoc(doc(db, "config", "app"));
+  if (snap.exists()) {
+    appConfig = { adminUid: snap.data().adminUid || null };
+  } else {
+    appConfig = { adminUid: null };
+  }
+}
+
+async function loadUserProfile(uid) {
+  const ref = doc(db, "users", uid);
+  const snap = await getDoc(ref);
+  if (snap.exists()) {
+    userProfile = { uid, ...snap.data() };
+    return;
+  }
+  const role = appConfig.adminUid === uid ? "admin" : "user";
+  await setDoc(ref, {
+    email: auth.currentUser?.email || "",
+    displayName: auth.currentUser?.email?.split("@")[0] || "",
+    dept: "",
+    role,
+    supervisorId: "",
+    createdAt: serverTimestamp()
+  });
+  userProfile = {
+    uid,
+    email: auth.currentUser?.email || "",
+    displayName: auth.currentUser?.email?.split("@")[0] || "",
+    dept: "",
+    role,
+    supervisorId: ""
+  };
+}
+
+function isAdmin() {
+  return userProfile && userProfile.role === "admin";
+}
+
+function isSupervisor() {
+  return userProfile && userProfile.role === "supervisor";
+}
+
+function canViewReportsSection() {
+  return isAdmin() || isSupervisor();
+}
+
+function roleLabel(r) {
+  if (r === "admin") return "مدير نظام";
+  if (r === "supervisor") return "مشرف";
+  return "مستخدم";
+}
+
+function updateHeaderChrome() {
+  document.getElementById("header-email").textContent = auth.currentUser?.email || "";
+  document.getElementById("header-role").textContent = userProfile ? roleLabel(userProfile.role) : "";
+  const navUsers = document.getElementById("nav-users");
+  if (navUsers) navUsers.style.display = isAdmin() ? "" : "none";
+  const navReports = document.getElementById("nav-reports");
+  if (navReports) navReports.style.display = canViewReportsSection() ? "" : "none";
+}
+
+function showSection(name) {
+  if (name === "reports" && !canViewReportsSection()) {
+    showSection("dashboard");
+    return;
+  }
+  document.querySelectorAll(".section-view").forEach(s => s.classList.remove("active"));
+  document.querySelectorAll(".nav-tab").forEach(b => b.classList.remove("active"));
+  const sec = document.getElementById("section-" + name);
+  if (sec) sec.classList.add("active");
+  document.querySelectorAll(".nav-tab").forEach(b => {
+    if (b.getAttribute("data-section") === name) b.classList.add("active");
+  });
+  if (name === "dashboard") refreshDashboard();
+  if (name === "users" && isAdmin()) refreshUsersList();
+  if (name === "tasks") showTasksHub();
+  if (name === "reports") initReportFilters();
+}
+
+function bindNav() {
+  document.querySelectorAll(".nav-tab").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const sec = btn.getAttribute("data-section");
+      if (sec === "users" && !isAdmin()) return;
+      if (sec === "reports" && !canViewReportsSection()) return;
+      showSection(sec);
+    });
+  });
+}
+
+function newTaskLocalId() {
+  return "t_" + Date.now() + "_" + Math.random().toString(36).slice(2, 9);
+}
+
+function tasksForFirestore() {
+  return tasksDraft.map((t, idx) => ({
+    order: idx,
+    title: t.title || "",
+    s: t.s || "",
+    e: t.e || "",
+    cat: t.cat || "",
+    col: t.col || "",
+    pct: t.pct != null ? t.pct : 0,
+    desc: t.desc || ""
+  }));
+}
+
+function updateSummaryFromDraft() {
+  const total = tasksDraft.length;
+  let done = 0;
+  let sumPct = 0;
+  tasksDraft.forEach(t => {
+    const v = t.pct != null ? t.pct : 0;
+    sumPct += v;
+    if (v === 100) done++;
+  });
+  const st = document.getElementById("s-total");
+  const sd = document.getElementById("s-done");
+  const sdp = document.getElementById("s-done-pct");
+  const si = document.getElementById("s-inprog");
+  const sa = document.getElementById("s-avg");
+  if (st) st.textContent = total;
+  if (sd) sd.textContent = done;
+  if (sdp) sdp.textContent = total ? Math.round((done / total) * 100) + "%" : "";
+  if (si) si.textContent = total - done;
+  if (sa) sa.textContent = total ? Math.round(sumPct / total) + "%" : "—";
+}
+
+function renderTasksTable() {
+  const tbody = document.getElementById("tasks-table-body");
+  const emptyEl = document.getElementById("tasks-table-empty");
+  if (!tbody) return;
+  tbody.innerHTML = "";
+  tasksDraft.forEach((t, i) => {
+    const tr = document.createElement("tr");
+    const timeStr = (t.s || "—") + " – " + (t.e || "—");
+    const actions = snapshotTimeLocked
+      ? `<td>—</td>`
+      : `<td>
+      <button type="button" class="btn-table btn-task-edit" data-index="${i}">تعديل</button>
+      <button type="button" class="btn-table danger btn-task-del" data-index="${i}">حذف</button>
+    </td>`;
+    tr.innerHTML = `<td>${i + 1}</td><td>${escAttr(t.title)}</td><td dir="ltr" style="text-align:left;">${escAttr(timeStr)}</td><td>${escAttr(t.cat || "—")}</td><td>${escAttr(t.col || "—")}</td><td>${t.pct != null ? t.pct : 0}%</td>${actions}`;
+    tbody.appendChild(tr);
+  });
+  if (emptyEl) emptyEl.style.display = tasksDraft.length ? "none" : "block";
+  updateSummaryFromDraft();
+}
+
+function setModalTaskPct(v) {
+  let n = parseInt(v, 10);
+  if (isNaN(n)) n = 0;
+  n = Math.max(0, Math.min(100, Math.round(n / 5) * 5));
+  const rng = document.getElementById("modal-task-rng");
+  const pv = document.getElementById("modal-task-pv");
+  if (rng) rng.value = String(n);
+  if (pv) pv.textContent = n + "%";
+}
+
+function showTaskModalError(msg) {
+  const e = document.getElementById("task-modal-error");
+  if (!e) return;
+  e.textContent = msg || "";
+  e.classList.toggle("show", !!msg);
+}
+
+function openTaskModalAdd() {
+  if (snapshotTimeLocked) {
+    toastI18n("toast_report_locked");
+    return;
+  }
+  taskModalEditIndex = null;
+  showTaskModalError("");
+  document.getElementById("task-modal-title").textContent = "إضافة مهمة";
+  document.getElementById("modal-task-title").value = "";
+  document.getElementById("modal-task-start").value = "";
+  document.getElementById("modal-task-end").value = "";
+  document.getElementById("modal-task-cat").value = "";
+  document.getElementById("modal-task-collab").value = "";
+  document.getElementById("modal-task-desc").value = "";
+  setModalTaskPct(0);
+  document.getElementById("task-modal").classList.add("show");
+  document.getElementById("task-modal").setAttribute("aria-hidden", "false");
+  const lang = document.getElementById("lang-select")?.value || "ar";
+  applyLanguage(lang);
+}
+
+function openTaskModalEdit(index) {
+  if (snapshotTimeLocked) {
+    toastI18n("toast_report_locked");
+    return;
+  }
+  const t = tasksDraft[index];
+  if (!t) return;
+  taskModalEditIndex = index;
+  showTaskModalError("");
+  document.getElementById("task-modal-title").textContent = "تعديل مهمة";
+  document.getElementById("modal-task-title").value = t.title || "";
+  document.getElementById("modal-task-start").value = t.s || "";
+  document.getElementById("modal-task-end").value = t.e || "";
+  document.getElementById("modal-task-cat").value = t.cat || "";
+  document.getElementById("modal-task-collab").value = t.col || "";
+  document.getElementById("modal-task-desc").value = t.desc || "";
+  setModalTaskPct(t.pct != null ? t.pct : 0);
+  document.getElementById("task-modal").classList.add("show");
+  document.getElementById("task-modal").setAttribute("aria-hidden", "false");
+  const lang = document.getElementById("lang-select")?.value || "ar";
+  applyLanguage(lang);
+}
+
+function closeTaskModal() {
+  document.getElementById("task-modal").classList.remove("show");
+  document.getElementById("task-modal").setAttribute("aria-hidden", "true");
+  showTaskModalError("");
+  taskModalEditIndex = null;
+}
+
+function saveTaskModal() {
+  if (snapshotTimeLocked) {
+    toastI18n("toast_report_locked");
+    return;
+  }
+  showTaskModalError("");
+  const title = document.getElementById("modal-task-title").value.trim();
+  if (!title) {
+    showTaskModalError("أدخل عنوان المهمة");
+    return;
+  }
+  const row = {
+    tid: taskModalEditIndex != null ? tasksDraft[taskModalEditIndex].tid : newTaskLocalId(),
+    title,
+    s: document.getElementById("modal-task-start").value || "",
+    e: document.getElementById("modal-task-end").value || "",
+    cat: document.getElementById("modal-task-cat").value || "",
+    col: document.getElementById("modal-task-collab").value.trim(),
+    pct: parseInt(document.getElementById("modal-task-rng").value, 10) || 0,
+    desc: document.getElementById("modal-task-desc").value.trim()
+  };
+  if (taskModalEditIndex != null) {
+    tasksDraft[taskModalEditIndex] = row;
+  } else {
+    tasksDraft.push(row);
+  }
+  renderTasksTable();
+  closeTaskModal();
+}
+
+function deleteTaskAt(index) {
+  if (snapshotTimeLocked) {
+    toastI18n("toast_report_locked");
+    return;
+  }
+  if (!confirm("حذف هذه المهمة من القائمة؟")) return;
+  tasksDraft.splice(index, 1);
+  renderTasksTable();
+}
+
+function clearAllTasks() {
+  if (snapshotTimeLocked) {
+    toastI18n("toast_report_locked");
+    return;
+  }
+  if (!confirm("هل أنت متأكد من مسح جميع المهام؟")) return;
+  tasksDraft = [];
+  renderTasksTable();
+}
+
+function showTasksHub() {
+  const hub = document.getElementById("tasks-hub-screen");
+  const rep = document.getElementById("tasks-report-screen");
+  if (hub) hub.hidden = false;
+  if (rep) rep.hidden = true;
+  const lang = document.getElementById("lang-select")?.value || "ar";
+  applyLanguage(lang);
+  void refreshMyReportsList();
+}
+
+async function showTasksReportScreen() {
+  const hub = document.getElementById("tasks-hub-screen");
+  const rep = document.getElementById("tasks-report-screen");
+  if (hub) hub.hidden = true;
+  if (rep) rep.hidden = false;
+  await loadDailySnapshot();
+  const lang = document.getElementById("lang-select")?.value || "ar";
+  applyLanguage(lang);
+}
+
+function openDailyReportFromHub() {
+  const dateInput = document.getElementById("report-date");
+  const iso = todayISO();
+  if (dateInput) dateInput.value = iso;
+  const lang = document.getElementById("lang-select")?.value || "ar";
+  const live = document.getElementById("live-date");
+  if (live) {
+    const h = formatHeaderDateFromISO(iso, lang);
+    if (h) live.textContent = h;
+  }
+  void showTasksReportScreen();
+}
+
+async function refreshMyReportsList() {
+  const uid = auth.currentUser?.uid;
+  const tbody = document.getElementById("my-reports-tbody");
+  const emptyEl = document.getElementById("my-reports-empty");
+  if (!uid || !tbody) return;
+  const lang = document.getElementById("lang-select")?.value || "ar";
+  const dict = translations[lang] || translations.ar;
+  tbody.innerHTML = "";
+  try {
+    const qsnap = await getDocs(collection(db, "dailySnapshots"));
+    const mine = [];
+    qsnap.forEach(s => {
+      const d = s.data();
+      if (d.userId !== uid) return;
+      mine.push(d);
+    });
+    mine.sort((a, b) => (b.reportDate || "").localeCompare(a.reportDate || ""));
+    mine.forEach(row => {
+      const agg = aggregateTasks(row.tasks);
+      const upd = row.updatedAt?.toDate ? row.updatedAt.toDate().toLocaleString("ar-IQ") : "—";
+      const code = row.reportCode ? String(row.reportCode) : "—";
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${escAttr(row.reportDate)}</td><td dir="ltr" style="text-align:left;">${escAttr(code)}</td><td>${agg.total}</td><td>${agg.avg != null ? agg.avg + "%" : "—"}</td><td>${escAttr(upd)}</td><td>
+        <button type="button" class="btn-table btn-load-report" data-date="${escAttr(row.reportDate)}">${escAttr(dict.btn_load_report)}</button>
+      </td>`;
+      tbody.appendChild(tr);
+    });
+    if (emptyEl) emptyEl.style.display = mine.length ? "none" : "block";
+  } catch (err) {
+    console.error(err);
+    if (emptyEl) emptyEl.style.display = "block";
+  }
+}
+
+async function loadDailySnapshot() {
+  const uid = auth.currentUser?.uid;
+  const dateInput = document.getElementById("report-date");
+  if (!uid || !dateInput?.value) return;
+  const docId = dailyDocId(uid, dateInput.value);
+  const snap = await getDoc(doc(db, "dailySnapshots", docId));
+  tasksDraft = [];
+  let data = null;
+  if (snap.exists()) {
+    data = snap.data();
+    document.getElementById("general-notes").value = data.generalNotes || "";
+    (data.tasks || []).forEach(t => {
+      tasksDraft.push({
+        tid: newTaskLocalId(),
+        title: t.title || "",
+        s: t.s || "",
+        e: t.e || "",
+        cat: t.cat || "",
+        col: t.col || "",
+        pct: t.pct != null ? t.pct : 0,
+        desc: t.desc || ""
+      });
+    });
+  } else {
+    document.getElementById("general-notes").value = "";
+  }
+  const timeLocked = isSnapshotTimeLocked(data);
+  const nameEl = document.getElementById("reporter-name");
+  const deptEl = document.getElementById("dept");
+  if (timeLocked && data) {
+    if (nameEl) nameEl.value = data.reporterName || "";
+    if (deptEl) deptEl.value = data.dept || "";
+  } else {
+    if (nameEl) nameEl.value = (userProfile && userProfile.displayName) || "";
+    if (deptEl) deptEl.value = (userProfile && userProfile.dept) || "";
+  }
+  snapshotTimeLocked = timeLocked;
+  renderTasksTable();
+  applyReportLockState(data);
+}
+
+async function saveReport() {
+  const uid = auth.currentUser?.uid;
+  const dateInput = document.getElementById("report-date");
+  if (!uid || !dateInput?.value) {
+    showToast("حدد تاريخ التقرير");
+    return;
+  }
+  if (snapshotTimeLocked) {
+    toastI18n("toast_report_locked");
+    return;
+  }
+  const tasks = tasksForFirestore();
+  const invalidKey = validateTasksForSave(tasks);
+  if (invalidKey) {
+    toastI18n(invalidKey);
+    return;
+  }
+  const docId = dailyDocId(uid, dateInput.value);
+  const snapRef = doc(db, "dailySnapshots", docId);
+  const counterRef = doc(db, "counters", "dailyReportSequence");
+  try {
+    await runTransaction(db, async transaction => {
+      const snap = await transaction.get(snapRef);
+      const prev = snap.exists() ? snap.data() : {};
+      if (prev.userId && prev.userId !== uid) {
+        throw new Error("FORBIDDEN");
+      }
+      if (prev.reportCode && prev.firstSavedAt) {
+        const firstMs = firestoreFirstSavedMs(prev.firstSavedAt);
+        if (firstMs && Date.now() > firstMs + REPORT_LOCK_MS) {
+          throw new Error("LOCKED");
+        }
+      }
+      let reportCode = prev.reportCode;
+      const updates = {
+        userId: uid,
+        reportDate: dateInput.value,
+        reporterName: document.getElementById("reporter-name").value.trim(),
+        dept: document.getElementById("dept").value.trim(),
+        generalNotes: document.getElementById("general-notes").value.trim(),
+        tasks,
+        updatedAt: serverTimestamp()
+      };
+      if (!reportCode) {
+        const ctrSnap = await transaction.get(counterRef);
+        const cur =
+          ctrSnap.exists() && typeof ctrSnap.data().value === "number"
+            ? ctrSnap.data().value
+            : 0;
+        const next = cur + 1;
+        transaction.set(counterRef, { value: next }, { merge: true });
+        reportCode = formatReportSequence(next);
+        updates.reportCode = reportCode;
+        updates.firstSavedAt = serverTimestamp();
+      }
+      transaction.set(snapRef, updates, { merge: true });
+    });
+    showToast("✓ تم حفظ التقرير في السحابة");
+    await loadDailySnapshot();
+    void refreshMyReportsList();
+  } catch (err) {
+    console.error(err);
+    if (err && err.message === "LOCKED") toastI18n("toast_report_locked");
+    else if (err && err.message === "FORBIDDEN") toastI18n("toast_save_forbidden");
+    else showToast("فشل الحفظ: تحقق من قواعد Firestore أو الاتصال");
+  }
+}
+
+function exportPdf() {
+  const element = document.getElementById("print-root");
+  if (!element || !window.html2pdf) {
+    showToast("تعذر تحميل مكتبة PDF");
+    return;
+  }
+  window.html2pdf()
+    .set({
+      margin: 10,
+      filename: "daily-tasks-report.pdf",
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
+    })
+    .from(element)
+    .save();
+}
+
+function printReport() {
+  window.print();
+}
+
+function todayISO() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function aggregateTasks(tasks) {
+  const list = tasks || [];
+  const total = list.length;
+  let done = 0;
+  let sum = 0;
+  list.forEach(t => {
+    const p = t.pct != null ? t.pct : 0;
+    sum += p;
+    if (p === 100) done++;
+  });
+  const avg = total ? Math.round(sum / total) : null;
+  return { total, done, inprog: total - done, avg };
+}
+
+function visibleUserIdsForScope() {
+  if (!userProfile) return [];
+  if (isAdmin()) return allUsersCache.map(u => u.uid);
+  if (isSupervisor()) {
+    return allUsersCache.filter(u => u.supervisorId === userProfile.uid || u.uid === userProfile.uid).map(u => u.uid);
+  }
+  return [userProfile.uid];
+}
+
+async function refreshAllUsers() {
+  const qs = await getDocs(collection(db, "users"));
+  allUsersCache = [];
+  qs.forEach(s => allUsersCache.push({ uid: s.id, ...s.data() }));
+}
+
+async function refreshDashboard() {
+  const iso = todayISO();
+  document.getElementById("dash-today").textContent = formatHeaderDateFromISO(iso, "ar");
+  await refreshAllUsers();
+  const allowed = new Set(visibleUserIdsForScope());
+  let totalT = 0;
+  let doneT = 0;
+  let sumAvg = 0;
+  let rows = 0;
+  const tbody = document.getElementById("dash-tbody");
+  tbody.innerHTML = "";
+  for (const uid of allowed) {
+    const docId = dailyDocId(uid, iso);
+    const snap = await getDoc(doc(db, "dailySnapshots", docId));
+    if (!snap.exists()) continue;
+    const data = snap.data();
+    const agg = aggregateTasks(data.tasks);
+    if (agg.total === 0) continue;
+    rows++;
+    totalT += agg.total;
+    doneT += agg.done;
+    sumAvg += agg.avg != null ? agg.avg : 0;
+    const u = allUsersCache.find(x => x.uid === uid);
+    const name = u?.displayName || u?.email || uid;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${escAttr(name)}</td><td>${escAttr(data.reportDate || iso)}</td><td>${agg.total}</td><td>${agg.avg != null ? agg.avg + "%" : "—"}</td>`;
+    tbody.appendChild(tr);
+  }
+  document.getElementById("dash-empty").style.display = rows ? "none" : "block";
+  document.getElementById("dash-total").textContent = totalT;
+  document.getElementById("dash-done").textContent = doneT;
+  document.getElementById("dash-inprog").textContent = totalT - doneT;
+  document.getElementById("dash-avg").textContent = rows ? Math.round(sumAvg / rows) + "%" : "—";
+}
+
+function initReportFilters() {
+  const from = document.getElementById("rep-from");
+  const to = document.getElementById("rep-to");
+  const t = todayISO();
+  if (from && !from.value) from.value = t;
+  if (to && !to.value) to.value = t;
+  const sel = document.getElementById("rep-user");
+  sel.innerHTML = "";
+  const allowed = visibleUserIdsForScope();
+  const optAll = document.createElement("option");
+  optAll.value = "";
+  optAll.textContent = "الكل";
+  sel.appendChild(optAll);
+  allowed.forEach(uid => {
+    const u = allUsersCache.find(x => x.uid === uid);
+    const o = document.createElement("option");
+    o.value = uid;
+    o.textContent = u?.displayName || u?.email || uid;
+    sel.appendChild(o);
+  });
+}
+
+async function runReport() {
+  await refreshAllUsers();
+  const from = document.getElementById("rep-from").value;
+  const to = document.getElementById("rep-to").value;
+  const filterUid = document.getElementById("rep-user").value;
+  const allowed = new Set(visibleUserIdsForScope());
+  const tbody = document.getElementById("rep-tbody");
+  tbody.innerHTML = "";
+  const qsnap = await getDocs(collection(db, "dailySnapshots"));
+  const list = [];
+  qsnap.forEach(s => {
+    const d = s.data();
+    if (!allowed.has(d.userId)) return;
+    if (filterUid && d.userId !== filterUid) return;
+    if (d.reportDate < from || d.reportDate > to) return;
+    list.push({ id: s.id, ...d });
+  });
+  list.sort((a, b) => (a.reportDate + a.userId).localeCompare(b.reportDate + b.userId));
+  list.forEach(row => {
+    const agg = aggregateTasks(row.tasks);
+    const u = allUsersCache.find(x => x.uid === row.userId);
+    const name = u?.displayName || u?.email || row.userId;
+    const tr = document.createElement("tr");
+    const upd = row.updatedAt?.toDate ? row.updatedAt.toDate().toLocaleString("ar-IQ") : "—";
+    const code = row.reportCode ? String(row.reportCode) : "—";
+    tr.innerHTML = `<td>${escAttr(name)}</td><td>${escAttr(row.reportDate)}</td><td dir="ltr" style="text-align:left;">${escAttr(code)}</td><td>${agg.total}</td><td>${agg.avg != null ? agg.avg + "%" : "—"}</td><td>${escAttr(upd)}</td>`;
+    tbody.appendChild(tr);
+  });
+  document.getElementById("rep-empty").style.display = list.length ? "none" : "block";
+}
+
+function isValidFirebaseUid(s) {
+  return typeof s === "string" && /^[a-zA-Z0-9]{10,128}$/.test(s.trim());
+}
+
+function fillModalSupervisorSelect(excludeUid) {
+  const sel = document.getElementById("modal-user-supervisor");
+  sel.innerHTML = '<option value="">—</option>';
+  allUsersCache.forEach(u => {
+    if (excludeUid && u.uid === excludeUid) return;
+    if (u.role === "supervisor" || u.role === "admin") {
+      const o = document.createElement("option");
+      o.value = u.uid;
+      o.textContent = u.displayName || u.email || u.uid;
+      sel.appendChild(o);
+    }
+  });
+}
+
+async function openUserModalAdd() {
+  showError("user-modal-error", "");
+  await refreshAllUsers();
+  userModalMode = "add";
+  userModalEditUid = null;
+  document.getElementById("user-modal-title").textContent = "إضافة مستخدم";
+  document.getElementById("user-modal-hint").style.display = "";
+  const uidInp = document.getElementById("modal-user-uid");
+  uidInp.value = "";
+  uidInp.disabled = false;
+  document.getElementById("modal-user-email").value = "";
+  document.getElementById("modal-user-display").value = "";
+  document.getElementById("modal-user-dept").value = "";
+  document.getElementById("modal-user-role").value = "user";
+  document.getElementById("user-modal-uid-wrap").style.display = "";
+  fillModalSupervisorSelect(null);
+  document.getElementById("modal-user-supervisor").value = "";
+  const lang = document.getElementById("lang-select")?.value || "ar";
+  applyLanguage(lang);
+  document.getElementById("user-modal").classList.add("show");
+  document.getElementById("user-modal").setAttribute("aria-hidden", "false");
+}
+
+async function openUserModalEdit(uid) {
+  showError("user-modal-error", "");
+  await refreshAllUsers();
+  const u = allUsersCache.find(x => x.uid === uid);
+  if (!u) {
+    showToast("المستخدم غير موجود في القائمة");
+    return;
+  }
+  userModalMode = "edit";
+  userModalEditUid = uid;
+  document.getElementById("user-modal-title").textContent = "تعديل مستخدم";
+  document.getElementById("user-modal-hint").style.display = "none";
+  const uidInp = document.getElementById("modal-user-uid");
+  uidInp.value = uid;
+  uidInp.disabled = true;
+  document.getElementById("modal-user-email").value = u.email || "";
+  document.getElementById("modal-user-display").value = u.displayName || "";
+  document.getElementById("modal-user-dept").value = u.dept || "";
+  document.getElementById("modal-user-role").value = u.role || "user";
+  fillModalSupervisorSelect(uid);
+  document.getElementById("modal-user-supervisor").value = u.supervisorId || "";
+  const lang = document.getElementById("lang-select")?.value || "ar";
+  applyLanguage(lang);
+  document.getElementById("user-modal").classList.add("show");
+  document.getElementById("user-modal").setAttribute("aria-hidden", "false");
+}
+
+function closeUserModal() {
+  document.getElementById("user-modal").classList.remove("show");
+  document.getElementById("user-modal").setAttribute("aria-hidden", "true");
+  showError("user-modal-error", "");
+}
+
+async function saveUserModal() {
+  showError("user-modal-error", "");
+  const email = document.getElementById("modal-user-email").value.trim();
+  const displayName = document.getElementById("modal-user-display").value.trim();
+  const dept = document.getElementById("modal-user-dept").value.trim();
+  const role = document.getElementById("modal-user-role").value;
+  const supervisorId = document.getElementById("modal-user-supervisor").value || "";
+  let uid;
+  if (userModalMode === "add") {
+    uid = document.getElementById("modal-user-uid").value.trim();
+    if (!uid) {
+      showError("user-modal-error", "أدخل UID المستخدم من Firebase Console");
+      return;
+    }
+    if (!isValidFirebaseUid(uid)) {
+      showError("user-modal-error", "صيغة UID غير صحيحة (أحرف وأرقام إنجليزية، الطول المناسب)");
+      return;
+    }
+    const snap = await getDoc(doc(db, "users", uid));
+    if (snap.exists()) {
+      showError("user-modal-error", "هذا UID مسجّل مسبقاً — استخدم «تعديل» من الجدول");
+      return;
+    }
+  } else {
+    uid = userModalEditUid;
+  }
+  const ref = doc(db, "users", uid);
+  const existing = await getDoc(ref);
+  const payload = {
+    email,
+    displayName: displayName || (email ? email.split("@")[0] : uid.slice(0, 8)),
+    dept,
+    role,
+    supervisorId: role === "user" ? supervisorId : "",
+    updatedAt: serverTimestamp()
+  };
+  if (!existing.exists()) {
+    payload.createdAt = serverTimestamp();
+  }
+  try {
+    await setDoc(ref, payload, { merge: true });
+    showToast(userModalMode === "add" ? "تمت إضافة المستخدم" : "تم حفظ التعديلات");
+    closeUserModal();
+    await refreshUsersList();
+    if (uid === auth.currentUser?.uid) {
+      await loadUserProfile(uid);
+      const rep = document.getElementById("tasks-report-screen");
+      if (rep && !rep.hidden) await loadDailySnapshot();
+    }
+  } catch (e) {
+    console.error(e);
+    showError("user-modal-error", e.message || "فشل الحفظ — تحقق من قواعد Firestore");
+  }
+}
+
+async function deleteUserFromGrid(uid) {
+  if (!uid) return;
+  if (uid === auth.currentUser.uid) {
+    showToast("لا يمكن حذف المستخدم الحالي");
+    return;
+  }
+  await loadAppConfig();
+  if (uid === appConfig.adminUid) {
+    showToast("لا يمكن حذف مستند مدير النظام");
+    return;
+  }
+  if (!confirm("حذف بيانات المستخدم من التطبيق؟ لن يُحذف الحساب من Authentication إلا يدوياً من Console.")) return;
+  try {
+    await deleteDoc(doc(db, "users", uid));
+    showToast("تم الحذف من Firestore");
+    await refreshUsersList();
+  } catch (e) {
+    console.error(e);
+    showToast(e.message || "فشل الحذف — تحقق من القواعد");
+  }
+}
+
+async function refreshUsersList() {
+  await refreshAllUsers();
+  const tbody = document.getElementById("users-tbody");
+  tbody.innerHTML = "";
+  allUsersCache.forEach(u => {
+    const sup = u.supervisorId ? (allUsersCache.find(x => x.uid === u.supervisorId)?.displayName || u.supervisorId) : "—";
+    const uidTitle = escAttr(u.uid);
+    const uidShort = u.uid.length > 20 ? u.uid.slice(0, 12) + "…" : u.uid;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td class="uid-mono" title="${uidTitle}">${escAttr(uidShort)}</td><td dir="ltr" style="text-align:left;">${escAttr(u.email)}</td><td>${escAttr(u.displayName)}</td><td>${escAttr(u.dept || "—")}</td><td>${escAttr(roleLabel(u.role))}</td><td>${escAttr(sup)}</td><td>
+      <button type="button" class="btn-table btn-user-edit" data-uid="${u.uid}">تعديل</button>
+      <button type="button" class="btn-table danger btn-user-del" data-uid="${u.uid}">حذف</button>
+    </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function bindTasksUi() {
+  document.getElementById("btn-add-task").addEventListener("click", () => openTaskModalAdd());
+  document.getElementById("btn-clear-tasks").addEventListener("click", clearAllTasks);
+  document.getElementById("btn-save-report").addEventListener("click", saveReport);
+  document.getElementById("btn-print").addEventListener("click", printReport);
+  document.getElementById("btn-pdf").addEventListener("click", exportPdf);
+  document.getElementById("btn-open-daily-report").addEventListener("click", () => openDailyReportFromHub());
+  document.getElementById("btn-back-tasks-hub").addEventListener("click", () => showTasksHub());
+  document.getElementById("btn-refresh-my-reports").addEventListener("click", () => refreshMyReportsList());
+  document.getElementById("tasks-table-body").addEventListener("click", e => {
+    const ed = e.target.closest(".btn-task-edit");
+    const del = e.target.closest(".btn-task-del");
+    if (ed) {
+      const i = parseInt(ed.getAttribute("data-index"), 10);
+      if (!isNaN(i)) openTaskModalEdit(i);
+    }
+    if (del) {
+      const j = parseInt(del.getAttribute("data-index"), 10);
+      if (!isNaN(j)) deleteTaskAt(j);
+    }
+  });
+  document.getElementById("my-reports-tbody").addEventListener("click", e => {
+    const b = e.target.closest(".btn-load-report");
+    if (!b) return;
+    const ds = b.getAttribute("data-date");
+    if (!ds) return;
+    document.getElementById("report-date").value = ds;
+    const lang = document.getElementById("lang-select").value;
+    const h = formatHeaderDateFromISO(ds, lang);
+    if (h) document.getElementById("live-date").textContent = h;
+    void showTasksReportScreen();
+  });
+  document.getElementById("task-modal-close").addEventListener("click", closeTaskModal);
+  document.getElementById("task-modal-cancel").addEventListener("click", closeTaskModal);
+  document.getElementById("task-modal-save").addEventListener("click", saveTaskModal);
+  document.getElementById("task-modal-card").addEventListener("click", e => e.stopPropagation());
+  document.getElementById("task-modal").addEventListener("click", closeTaskModal);
+  document.getElementById("modal-task-rng").addEventListener("input", function () {
+    setModalTaskPct(this.value);
+  });
+  document.getElementById("modal-task-pct-min").addEventListener("click", () => {
+    const v = parseInt(document.getElementById("modal-task-rng").value, 10) || 0;
+    setModalTaskPct(v - 5);
+  });
+  document.getElementById("modal-task-pct-plus").addEventListener("click", () => {
+    const v = parseInt(document.getElementById("modal-task-rng").value, 10) || 0;
+    setModalTaskPct(v + 5);
+  });
+  const dateInput = document.getElementById("report-date");
+  dateInput.addEventListener("change", () => {
+    const lang = document.getElementById("lang-select").value;
+    const h = formatHeaderDateFromISO(dateInput.value, lang);
+    if (h) document.getElementById("live-date").textContent = h;
+    loadDailySnapshot();
+  });
+  document.getElementById("lang-select").addEventListener("change", function () {
+    applyLanguage(this.value);
+    const h = formatHeaderDateFromISO(document.getElementById("report-date").value, this.value);
+    if (h) document.getElementById("live-date").textContent = h;
+    const hub = document.getElementById("tasks-hub-screen");
+    if (hub && !hub.hidden) void refreshMyReportsList();
+  });
+}
+
+function initReportDate() {
+  const dateInput = document.getElementById("report-date");
+  const iso = todayISO();
+  dateInput.value = iso;
+  const lang = document.getElementById("lang-select").value;
+  const h = formatHeaderDateFromISO(iso, lang);
+  if (h) document.getElementById("live-date").textContent = h;
+}
+
+async function afterAuthRoutine() {
+  await loadAppConfig();
+  await loadUserProfile(auth.currentUser.uid);
+  updateHeaderChrome();
+  showScreen("screen-app");
+  applyLanguage(document.getElementById("lang-select")?.value || "ar");
+  initReportDate();
+  void refreshMyReportsList();
+  showSection("dashboard");
+}
+
+document.getElementById("setup-btn-login").addEventListener("click", async () => {
+  showError("setup-error", "");
+  const email = document.getElementById("setup-email").value.trim();
+  const password = document.getElementById("setup-password").value;
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+    document.getElementById("setup-uid-live").textContent = auth.currentUser.uid;
+    document.getElementById("setup-step-login").style.display = "none";
+    document.getElementById("setup-step-uid").style.display = "block";
+  } catch (e) {
+    showError("setup-error", e.message || "فشل تسجيل الدخول");
+  }
+});
+
+document.getElementById("setup-btn-confirm").addEventListener("click", async () => {
+  showError("setup-error", "");
+  const typed = document.getElementById("setup-uid-input").value.trim();
+  const live = auth.currentUser?.uid;
+  if (!live) {
+    showError("setup-error", "لا توجد جلسة. سجّل الدخول أولاً.");
+    return;
+  }
+  if (typed !== live) {
+    showError("setup-error", "UID غير متطابق مع الحساب المسجّل. يجب أن يطابق المعرّف أعلاه.");
+    return;
+  }
+  try {
+    await setDoc(doc(db, "config", "app"), {
+      adminUid: live,
+      initializedAt: serverTimestamp()
+    });
+    await setDoc(
+      doc(db, "users", live),
+      {
+        email: auth.currentUser.email || "",
+        displayName: auth.currentUser.email?.split("@")[0] || "مدير النظام",
+        role: "admin",
+        supervisorId: "",
+        createdAt: serverTimestamp()
+      },
+      { merge: true }
+    );
+    showToast("تم حفظ إعدادات النظام");
+    document.getElementById("setup-step-uid").style.display = "none";
+    document.getElementById("setup-step-login").style.display = "block";
+    await signOut(auth);
+    await loadAppConfig();
+    showScreen("screen-login");
+  } catch (e) {
+    console.error(e);
+    showError("setup-error", e.message || "فشل الحفظ. راجع قواعد Firestore.");
+  }
+});
+
+document.getElementById("setup-btn-back").addEventListener("click", async () => {
+  showError("setup-error", "");
+  await signOut(auth);
+  document.getElementById("setup-step-uid").style.display = "none";
+  document.getElementById("setup-step-login").style.display = "block";
+});
+
+document.getElementById("login-btn").addEventListener("click", async () => {
+  showError("login-error", "");
+  const email = document.getElementById("login-email").value.trim();
+  const password = document.getElementById("login-password").value;
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+  } catch (e) {
+    showError("login-error", e.message || "فشل الدخول");
+  }
+});
+
+document.getElementById("btn-logout").addEventListener("click", async () => {
+  await signOut(auth);
+});
+
+document.getElementById("btn-open-user-modal").addEventListener("click", () => openUserModalAdd());
+document.getElementById("user-modal-close").addEventListener("click", closeUserModal);
+document.getElementById("user-modal-cancel").addEventListener("click", closeUserModal);
+document.getElementById("user-modal-save").addEventListener("click", () => saveUserModal());
+document.getElementById("user-modal-card").addEventListener("click", e => e.stopPropagation());
+document.getElementById("user-modal").addEventListener("click", closeUserModal);
+document.getElementById("btn-refresh-users").addEventListener("click", refreshUsersList);
+document.getElementById("users-tbody").addEventListener("click", e => {
+  const editBtn = e.target.closest(".btn-user-edit");
+  const delBtn = e.target.closest(".btn-user-del");
+  if (editBtn) openUserModalEdit(editBtn.getAttribute("data-uid"));
+  if (delBtn) deleteUserFromGrid(delBtn.getAttribute("data-uid"));
+});
+document.getElementById("btn-run-report").addEventListener("click", runReport);
+
+bindNav();
+bindTasksUi();
+applyLanguage("ar");
+
+onAuthStateChanged(auth, async user => {
+  if (!user) {
+    userProfile = null;
+    showError("login-error", "");
+    await loadAppConfig();
+    if (!appConfig.adminUid) {
+      showScreen("screen-setup");
+    } else {
+      showScreen("screen-login");
+    }
+    return;
+  }
+  await loadAppConfig();
+  if (!appConfig.adminUid) {
+    showScreen("screen-setup");
+    return;
+  }
+  await afterAuthRoutine();
+});
+
+(async () => {
+  await loadAppConfig();
+  showScreen("screen-loading");
+  if (!appConfig.adminUid) {
+    showScreen("screen-setup");
+  } else if (!auth.currentUser) {
+    showScreen("screen-login");
+  }
+})();
+</script>
+</body>
+</html>
