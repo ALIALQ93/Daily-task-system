@@ -639,6 +639,21 @@
     max-width: 520px;
   }
 
+  /* Admin edit modal should feel like a full editor */
+  #admin-edit-modal .modal-card {
+    width: min(1200px, 96vw);
+    max-width: 1200px;
+    max-height: 92vh;
+  }
+  #admin-edit-modal .modal-body {
+    padding: 16px 20px;
+    max-height: calc(92vh - 60px);
+    overflow: auto;
+  }
+  #admin-edit-modal .modal-actions {
+    margin-top: 10px;
+  }
+
   .tasks-work-table td {
     vertical-align: middle;
     font-size: 12px;
@@ -939,7 +954,7 @@
                   <th data-i18n="rep_col_count">عدد المهام</th>
                   <th data-i18n="rep_col_avg">متوسط الإنجاز</th>
                   <th data-i18n="rep_col_updated">آخر تحديث</th>
-                  <th data-i18n="rep_col_attendance">حضور / انصراف</th>
+                  <th class="col-attendance" data-i18n="rep_col_attendance">حضور / انصراف</th>
                   <th></th>
                 </tr>
               </thead>
@@ -959,8 +974,10 @@
             <p class="page-subtitle" data-i18n="page_subtitle">تسجيل وتتبع المهام المنجزة وقيد الإنجاز</p>
           </div>
           <div class="date-display">
+            <button type="button" class="btn-outline no-print" id="btn-prev-day" title="اليوم السابق" aria-label="اليوم السابق">‹</button>
             <span class="dot"></span>
             <span id="live-date"></span>
+            <button type="button" class="btn-outline no-print" id="btn-next-day" title="اليوم التالي" aria-label="اليوم التالي">›</button>
           </div>
         </div>
 
@@ -1048,6 +1065,8 @@
             <div style="display:flex;gap:10px;flex-wrap:wrap;">
               <button type="button" class="btn-outline" id="btn-clear-tasks" data-i18n="btn_clear_all">مسح الكل</button>
               <button type="button" class="btn-outline" id="btn-print">طباعة</button>
+              <button type="button" class="btn-outline" id="btn-carry-next-day" title="نسخ المهام غير المكتملة إلى الغد">ترحيل غير المكتمل للغد</button>
+              <button type="button" class="btn-outline" id="btn-remove-carried" title="حذف المهام المُرحّلة من هذا اليوم">حذف المُرحّل</button>
               <button type="button" class="btn-outline" id="btn-save-draft" data-i18n="btn_save_draft">حفظ مسودة</button>
               <button type="button" class="btn-primary" id="btn-confirm-report">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
@@ -1133,7 +1152,7 @@
                 <th>المهام</th>
                 <th>متوسط الإنجاز</th>
                 <th>آخر تحديث</th>
-                <th data-i18n="rep_col_attendance">حضور / انصراف</th>
+                <th class="col-attendance" data-i18n="rep_col_attendance">حضور / انصراف</th>
                 <th data-i18n="rep_col_summary">ملخص</th>
                 <th data-i18n="rep_col_actions">إجراءات</th>
               </tr>
@@ -1294,6 +1313,22 @@
   </div>
 </div>
 
+<div id="admin-edit-modal" class="modal-overlay no-print" aria-hidden="true">
+  <div class="modal-card modal-wide" role="dialog" aria-labelledby="admin-edit-modal-title" id="admin-edit-modal-card">
+    <div class="modal-card-header">
+      <h3 id="admin-edit-modal-title">تعديل التقرير</h3>
+      <button type="button" class="modal-close" id="admin-edit-modal-close" aria-label="إغلاق">×</button>
+    </div>
+    <div class="modal-body" style="max-height:78vh;overflow:auto;">
+      <p class="hint" id="admin-edit-modal-context" style="margin-bottom:12px;font-size:13px;color:var(--text-secondary);line-height:1.5;"></p>
+      <div id="admin-edit-modal-body"></div>
+    </div>
+    <div class="modal-actions" style="padding:0 20px 20px;">
+      <button type="button" class="btn-outline" id="admin-edit-modal-done">إغلاق</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <!--
@@ -1390,6 +1425,10 @@ let allUsersCache = [];
 let userModalMode = "add";
 let userModalEditUid = null;
 let attendanceModalDocId = null;
+let currentDailyDocId = null;
+let currentDailySnapExists = false;
+let lastReportDateValue = null;
+let currentReportOwnerUid = null; // admin may load/edit other users' reports
 
 const REPORT_LOCK_MS = 12 * 60 * 60 * 1000;
 let snapshotTimeLocked = false;
@@ -1492,6 +1531,8 @@ const translations = {
     toast_task_times_required: "لا يمكن تأكيد الحفظ: حدّد وقت البداية ووقت الانتهاء لكل مهمة.",
     toast_draft_saved: "✓ تم حفظ المسودة",
     toast_confirmed_saved: "✓ تم تأكيد الحفظ وبدء مهلة التعديل (12 ساعة)",
+    toast_duplicate_date: "لا يمكن تغيير التاريخ: يوجد تقرير محفوظ لنفس التاريخ.",
+    confirm_move_report_date: "سيتم نقل التقرير إلى التاريخ الجديد. هل تريد المتابعة؟",
     toast_report_locked: "انتهت مهلة تعديل التقرير (12 ساعة من أول حفظ).",
     toast_save_forbidden: "لا يمكن حفظ هذا التقرير.",
     ph_reporter_auto: "من بطاقة المستخدم",
@@ -1597,6 +1638,8 @@ const translations = {
     toast_task_times_required: "Cannot confirm: set start and end time for every task.",
     toast_draft_saved: "✓ Draft saved",
     toast_confirmed_saved: "✓ Confirmed. Edit window started (12 hours)",
+    toast_duplicate_date: "Cannot change date: a report already exists for that date.",
+    confirm_move_report_date: "This will move the report to the new date. Continue?",
     toast_report_locked: "The edit window (12 hours from first save) has ended.",
     toast_save_forbidden: "You cannot save this report.",
     ph_reporter_auto: "From user profile",
@@ -1695,6 +1738,8 @@ function firestoreFirstSavedMs(ts) {
 }
 
 function isSnapshotTimeLocked(data) {
+  // Admin can edit regardless of time window (enforced also by Firestore rules).
+  if (typeof isAdmin === "function" && isAdmin()) return false;
   if (!data || !data.reportCode || !data.firstSavedAt) return false;
   const t = firestoreFirstSavedMs(data.firstSavedAt);
   if (!t) return false;
@@ -1726,6 +1771,12 @@ function toastI18n(key) {
   showToast(dict[key] || key);
 }
 
+function confirmI18n(key) {
+  const lang = document.getElementById("lang-select")?.value || "ar";
+  const dict = translations[lang] || translations.ar;
+  return confirm(dict[key] || key);
+}
+
 function applyReportLockState(data) {
   const codeEl = document.getElementById("report-code-display");
   const dateInput = document.getElementById("report-date");
@@ -1736,9 +1787,7 @@ function applyReportLockState(data) {
   }
   const timeLocked = isSnapshotTimeLocked(data);
   snapshotTimeLocked = timeLocked;
-  if (dateInput) {
-    dateInput.disabled = hasCode || timeLocked;
-  }
+  // Keep date navigation available even when a report is time-locked.
   const nameEl = document.getElementById("reporter-name");
   const deptEl = document.getElementById("dept");
   if (nameEl) nameEl.disabled = true;
@@ -1856,7 +1905,11 @@ function tasksForFirestore() {
     cat: t.cat || "",
     col: t.col || "",
     pct: t.pct != null ? t.pct : 0,
-    desc: t.desc || ""
+    desc: t.desc || "",
+    // Optional carry-over metadata
+    isCarried: !!t.isCarried,
+    carriedFromDate: t.carriedFromDate || "",
+    carriedFromKey: t.carriedFromKey || ""
   }));
 }
 
@@ -1889,13 +1942,16 @@ function renderTasksTable() {
   tasksDraft.forEach((t, i) => {
     const tr = document.createElement("tr");
     const timeStr = (t.s || "—") + " – " + (t.e || "—");
+    const carryBadge = t.isCarried
+      ? `<span style="display:inline-block;margin-inline-start:8px;padding:2px 8px;border-radius:999px;background:rgba(124,92,255,.10);border:1px solid rgba(124,92,255,.25);color:#5b45d6;font-size:11px;vertical-align:middle;">مُرحّلة</span>`
+      : "";
     const actions = snapshotTimeLocked
       ? `<td>—</td>`
       : `<td>
       <button type="button" class="btn-table btn-task-edit" data-index="${i}">تعديل</button>
       <button type="button" class="btn-table danger btn-task-del" data-index="${i}">حذف</button>
     </td>`;
-    tr.innerHTML = `<td>${i + 1}</td><td>${escAttr(t.title)}</td><td dir="ltr" style="text-align:left;">${escAttr(timeStr)}</td><td>${escAttr(t.cat || "—")}</td><td>${escAttr(t.col || "—")}</td><td>${t.pct != null ? t.pct : 0}%</td>${actions}`;
+    tr.innerHTML = `<td>${i + 1}</td><td>${escAttr(t.title)}${carryBadge}</td><td dir="ltr" style="text-align:left;">${escAttr(timeStr)}</td><td>${escAttr(t.cat || "—")}</td><td>${escAttr(t.col || "—")}</td><td>${t.pct != null ? t.pct : 0}%</td>${actions}`;
     tbody.appendChild(tr);
   });
   if (emptyEl) emptyEl.style.display = tasksDraft.length ? "none" : "block";
@@ -2044,6 +2100,8 @@ function openDailyReportFromHub() {
   const dateInput = document.getElementById("report-date");
   const iso = todayISO();
   if (dateInput) dateInput.value = iso;
+  // Opening from hub always targets the current signed-in user.
+  currentReportOwnerUid = auth.currentUser?.uid || null;
   const lang = document.getElementById("lang-select")?.value || "ar";
   const live = document.getElementById("live-date");
   if (live) {
@@ -2107,9 +2165,10 @@ async function refreshMyReportsList() {
             ? attBtn
             : openCell;
       const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${escAttr(row.reportDate)}</td><td>${escAttr(uname)}</td><td dir="ltr" style="text-align:left;">${escAttr(code)}</td><td>${agg.total}</td><td>${agg.avg != null ? agg.avg + "%" : "—"}</td><td>${escAttr(upd)}</td><td dir="ltr" style="text-align:left;">${escAttr(att)}</td><td>${actionsInner}</td>`;
+      tr.innerHTML = `<td>${escAttr(row.reportDate)}</td><td>${escAttr(uname)}</td><td dir="ltr" style="text-align:left;">${escAttr(code)}</td><td>${agg.total}</td><td>${agg.avg != null ? agg.avg + "%" : "—"}</td><td>${escAttr(upd)}</td><td class="col-attendance" dir="ltr" style="text-align:left;">${escAttr(att)}</td><td>${actionsInner}</td>`;
       tbody.appendChild(tr);
     });
+    setAttendanceColumnsVisibility();
     if (emptyEl) emptyEl.style.display = list.length ? "none" : "block";
   } catch (err) {
     console.error(err);
@@ -2196,14 +2255,47 @@ async function saveAttendanceModal() {
   }
 }
 
+async function moveReportToDate(newDate) {
+  const uid = auth.currentUser?.uid;
+  if (!uid || !newDate) return;
+  if (!currentDailyDocId || !currentDailySnapExists) return;
+  const fromRef = doc(db, "dailySnapshots", currentDailyDocId);
+  const toDocId = dailyDocId(uid, newDate);
+  if (toDocId === currentDailyDocId) return;
+  const toRef = doc(db, "dailySnapshots", toDocId);
+  await runTransaction(db, async transaction => {
+    const toSnap = await transaction.get(toRef);
+    if (toSnap.exists()) {
+      throw new Error("DUPLICATE_DATE");
+    }
+    const fromSnap = await transaction.get(fromRef);
+    if (!fromSnap.exists()) return;
+    const data = fromSnap.data();
+    if (data.userId && data.userId !== uid) throw new Error("FORBIDDEN");
+    const nextData = {
+      ...data,
+      reportDate: newDate,
+      updatedAt: serverTimestamp()
+    };
+    transaction.set(toRef, nextData, { merge: true });
+    transaction.delete(fromRef);
+  });
+  currentDailyDocId = toDocId;
+  currentDailySnapExists = true;
+}
+
 async function loadDailySnapshot() {
   const uid = auth.currentUser?.uid;
   const dateInput = document.getElementById("report-date");
   if (!uid || !dateInput?.value) return;
-  const docId = dailyDocId(uid, dateInput.value);
+  const ownerUid = isAdmin() && currentReportOwnerUid ? currentReportOwnerUid : uid;
+  const docId = dailyDocId(ownerUid, dateInput.value);
   const snap = await getDoc(doc(db, "dailySnapshots", docId));
   tasksDraft = [];
   let data = null;
+  currentDailyDocId = docId;
+  currentDailySnapExists = snap.exists();
+  lastReportDateValue = dateInput.value;
   if (snap.exists()) {
     data = snap.data();
     document.getElementById("general-notes").value = data.generalNotes || "";
@@ -2225,12 +2317,20 @@ async function loadDailySnapshot() {
   const timeLocked = isSnapshotTimeLocked(data);
   const nameEl = document.getElementById("reporter-name");
   const deptEl = document.getElementById("dept");
-  if (timeLocked && data) {
+  // Always prefer the loaded snapshot's own metadata when present.
+  // Otherwise fall back to the owner user's profile (not the current editor).
+  if (data) {
     if (nameEl) nameEl.value = data.reporterName || "";
     if (deptEl) deptEl.value = data.dept || "";
   } else {
-    if (nameEl) nameEl.value = (userProfile && userProfile.displayName) || "";
-    if (deptEl) deptEl.value = (userProfile && userProfile.dept) || "";
+    const owner = allUsersCache.find(x => x.uid === ownerUid) || null;
+    if (nameEl) nameEl.value = owner?.displayName || owner?.email || "";
+    if (deptEl) deptEl.value = owner?.dept || "";
+    // If the owner isn't in cache (rare), fall back to current user's profile.
+    if (!owner) {
+      if (nameEl) nameEl.value = (userProfile && userProfile.displayName) || "";
+      if (deptEl) deptEl.value = (userProfile && userProfile.dept) || "";
+    }
   }
   snapshotTimeLocked = timeLocked;
   renderTasksTable();
@@ -2244,20 +2344,21 @@ async function saveDraft() {
     showToast("حدد تاريخ التقرير");
     return;
   }
-  if (snapshotTimeLocked) {
+  if (snapshotTimeLocked && !isAdmin()) {
     toastI18n("toast_report_locked");
     return;
   }
+  const ownerUid = isAdmin() && currentReportOwnerUid ? currentReportOwnerUid : uid;
   const tasks = tasksForFirestore();
   const invalidKey = validateTasksForDraft(tasks);
   if (invalidKey) {
     toastI18n(invalidKey);
     return;
   }
-  const docId = dailyDocId(uid, dateInput.value);
+  const docId = dailyDocId(ownerUid, dateInput.value);
   try {
     await setDoc(doc(db, "dailySnapshots", docId), {
-      userId: uid,
+      userId: ownerUid,
       reportDate: dateInput.value,
       reporterName: document.getElementById("reporter-name").value.trim(),
       dept: document.getElementById("dept").value.trim(),
@@ -2284,27 +2385,28 @@ async function confirmReport() {
     showToast("حدد تاريخ التقرير");
     return;
   }
-  if (snapshotTimeLocked) {
+  if (snapshotTimeLocked && !isAdmin()) {
     toastI18n("toast_report_locked");
     return;
   }
+  const ownerUid = isAdmin() && currentReportOwnerUid ? currentReportOwnerUid : uid;
   const tasks = tasksForFirestore();
   const invalidKey = validateTasksForConfirm(tasks);
   if (invalidKey) {
     toastI18n(invalidKey);
     return;
   }
-  const docId = dailyDocId(uid, dateInput.value);
+  const docId = dailyDocId(ownerUid, dateInput.value);
   const snapRef = doc(db, "dailySnapshots", docId);
   const counterRef = doc(db, "counters", "dailyReportSequence");
   try {
     await runTransaction(db, async transaction => {
       const snap = await transaction.get(snapRef);
       const prev = snap.exists() ? snap.data() : {};
-      if (prev.userId && prev.userId !== uid) {
+      if (!isAdmin() && prev.userId && prev.userId !== ownerUid) {
         throw new Error("FORBIDDEN");
       }
-      if (prev.reportCode && prev.firstSavedAt) {
+      if (!isAdmin() && prev.reportCode && prev.firstSavedAt) {
         const firstMs = firestoreFirstSavedMs(prev.firstSavedAt);
         if (firstMs && Date.now() > firstMs + REPORT_LOCK_MS) {
           throw new Error("LOCKED");
@@ -2312,7 +2414,7 @@ async function confirmReport() {
       }
       let reportCode = prev.reportCode;
       const updates = {
-        userId: uid,
+        userId: ownerUid,
         reportDate: dateInput.value,
         reporterName: document.getElementById("reporter-name").value.trim(),
         dept: document.getElementById("dept").value.trim(),
@@ -2357,6 +2459,211 @@ function todayISO() {
   return `${y}-${m}-${d}`;
 }
 
+function isoToLocalMidnight(iso) {
+  const [y, m, d] = String(iso || "").split("-");
+  if (!y || !m || !d) return null;
+  const dt = new Date(parseInt(y, 10), parseInt(m, 10) - 1, parseInt(d, 10));
+  if (isNaN(dt.getTime())) return null;
+  return dt;
+}
+
+function dateToISO(dt) {
+  const y = dt.getFullYear();
+  const m = String(dt.getMonth() + 1).padStart(2, "0");
+  const d = String(dt.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function hashStringDjb2(str) {
+  let h = 5381;
+  const s = String(str || "");
+  for (let i = 0; i < s.length; i++) {
+    h = ((h << 5) + h) ^ s.charCodeAt(i);
+  }
+  return (h >>> 0).toString(16);
+}
+
+function carryKeyForTask(sourceDate, title, cat, desc, sourceOrder) {
+  return hashStringDjb2([sourceDate, sourceOrder, title, cat, desc].join("|"));
+}
+
+function addDaysISO(iso, deltaDays) {
+  const dt = isoToLocalMidnight(iso);
+  if (!dt) return null;
+  dt.setDate(dt.getDate() + deltaDays);
+  return dateToISO(dt);
+}
+
+async function carryIncompleteToNextDay() {
+  const uid = auth.currentUser?.uid;
+  const dateIso = document.getElementById("report-date")?.value || "";
+  if (!uid || !dateIso) return;
+
+  if (snapshotTimeLocked && !isAdmin()) {
+    toastI18n("toast_report_locked");
+    return;
+  }
+
+  const ownerUid = isAdmin() && currentReportOwnerUid ? currentReportOwnerUid : uid;
+  const nextIso = addDaysISO(dateIso, 1);
+  if (!nextIso) return;
+
+  const srcIncomplete = tasksDraft
+    .map((t, idx) => ({ t, idx }))
+    .filter(x => (x.t.pct != null ? x.t.pct : 0) < 100 && String(x.t.title || "").trim());
+
+  if (srcIncomplete.length === 0) {
+    showToast("لا توجد مهام غير مكتملة لترحيلها.");
+    return;
+  }
+
+  const nextDocId = dailyDocId(ownerUid, nextIso);
+  const nextRef = doc(db, "dailySnapshots", nextDocId);
+  const nextSnap = await getDoc(nextRef);
+  const nextData = nextSnap.exists() ? nextSnap.data() : null;
+
+  // Do not write into a locked confirmed report (unless admin).
+  if (!isAdmin() && isSnapshotTimeLocked(nextData)) {
+    showToast("لا يمكن الترحيل: تقرير الغد مقفول.");
+    return;
+  }
+
+  const existingTasks = Array.isArray(nextData?.tasks) ? nextData.tasks : [];
+  const existingKeys = new Set(
+    existingTasks.map(t => (t && t.carriedFromKey ? String(t.carriedFromKey) : "")).filter(Boolean)
+  );
+
+  const toAdd = [];
+  srcIncomplete.forEach(({ t, idx }) => {
+    const key = carryKeyForTask(dateIso, t.title || "", t.cat || "", t.desc || "", idx);
+    if (existingKeys.has(key)) return;
+    toAdd.push({
+      order: 0, // will be normalized on save
+      title: t.title || "",
+      s: "", // reset times for next day
+      e: "",
+      cat: t.cat || "",
+      col: t.col || "",
+      pct: t.pct != null ? t.pct : 0,
+      desc: t.desc || "",
+      isCarried: true,
+      carriedFromDate: dateIso,
+      carriedFromKey: key
+    });
+  });
+
+  if (toAdd.length === 0) {
+    showToast("تم الترحيل مسبقاً (لا توجد مهام جديدة).");
+    return;
+  }
+
+  const merged = existingTasks.concat(toAdd).map((t, i) => ({ ...t, order: i }));
+  const owner = allUsersCache.find(x => x.uid === ownerUid) || null;
+
+  await setDoc(
+    nextRef,
+    {
+      userId: ownerUid,
+      reportDate: nextIso,
+      reporterName: nextData?.reporterName || owner?.displayName || owner?.email || "",
+      dept: nextData?.dept || owner?.dept || "",
+      generalNotes: nextData?.generalNotes || "",
+      tasks: merged,
+      isDraft: nextData?.isDraft != null ? !!nextData.isDraft : true,
+      updatedAt: serverTimestamp()
+    },
+    { merge: true }
+  );
+
+  showToast(`✓ تم ترحيل ${toAdd.length} مهمة إلى ${nextIso}`);
+}
+
+function removeCarriedTasksFromToday() {
+  if (snapshotTimeLocked && !isAdmin()) {
+    toastI18n("toast_report_locked");
+    return;
+  }
+  const before = tasksDraft.length;
+  tasksDraft = tasksDraft.filter(t => !t.isCarried);
+  const removed = before - tasksDraft.length;
+  if (!removed) {
+    showToast("لا توجد مهام مُرحّلة لحذفها.");
+    return;
+  }
+  renderTasksTable();
+  showToast(`تم حذف ${removed} مهمة مُرحّلة من هذا اليوم. احفظ التقرير لتثبيت التغييرات.`);
+}
+
+function openReportDateISO(iso) {
+  const dateInput = document.getElementById("report-date");
+  if (!dateInput) return;
+  dateInput.value = iso;
+  const lang = document.getElementById("lang-select")?.value || "ar";
+  const h = formatHeaderDateFromISO(iso, lang);
+  if (h) {
+    const live = document.getElementById("live-date");
+    if (live) live.textContent = h;
+  }
+  // Ensure snapshotTimeLocked reflects the loaded report for that date.
+  void showTasksReportScreen();
+}
+
+let adminEditModalRestore = null;
+
+async function openAdminEditModal(ownerUid, iso) {
+  if (!ownerUid || !iso) return;
+  if (!isAdmin()) {
+    toastI18n("toast_save_forbidden");
+    return;
+  }
+  currentReportOwnerUid = ownerUid;
+  openReportDateISO(iso);
+  // Ensure the report screen is visible and data is loaded before embedding in the modal.
+  await loadDailySnapshot();
+
+  const modal = document.getElementById("admin-edit-modal");
+  const body = document.getElementById("admin-edit-modal-body");
+  const ctx = document.getElementById("admin-edit-modal-context");
+  const reportEl = document.getElementById("tasks-report-screen");
+  if (!modal || !body || !reportEl) return;
+
+  // Save original placement to restore later.
+  if (!adminEditModalRestore) {
+    const parent = reportEl.parentElement;
+    const next = reportEl.nextSibling;
+    adminEditModalRestore = () => {
+      if (!parent) return;
+      parent.insertBefore(reportEl, next);
+    };
+  }
+
+  if (ctx) {
+    const u = allUsersCache.find(x => x.uid === ownerUid);
+    const uname = u?.displayName || u?.email || ownerUid;
+    ctx.textContent = `${uname} — ${iso}`;
+  }
+
+  reportEl.hidden = false;
+  body.innerHTML = "";
+  body.appendChild(reportEl);
+  modal.classList.add("show");
+  modal.setAttribute("aria-hidden", "false");
+}
+
+function closeAdminEditModal() {
+  const modal = document.getElementById("admin-edit-modal");
+  if (modal) {
+    modal.classList.remove("show");
+    modal.setAttribute("aria-hidden", "true");
+  }
+  const body = document.getElementById("admin-edit-modal-body");
+  if (body) body.innerHTML = "";
+  if (adminEditModalRestore) {
+    adminEditModalRestore();
+    adminEditModalRestore = null;
+  }
+}
+
 function aggregateTasks(tasks) {
   const list = tasks || [];
   const total = list.length;
@@ -2380,14 +2687,19 @@ function formatAttendanceCell(attIn, attOut) {
 }
 
 function canManageAttendance() {
-  return isAdmin() || isSupervisor();
+  return isAdmin();
 }
 
 function userMayEditAttendanceOnReport(reportOwnerUid) {
   if (!reportOwnerUid || !auth.currentUser) return false;
-  if (isAdmin()) return true;
-  if (!isSupervisor()) return false;
-  return visibleUserIdsForScope().includes(reportOwnerUid);
+  return isAdmin();
+}
+
+function setAttendanceColumnsVisibility() {
+  const show = isAdmin();
+  document.querySelectorAll(".col-attendance").forEach(el => {
+    el.style.display = show ? "" : "none";
+  });
 }
 
 function visibleUserIdsForScope() {
@@ -2604,10 +2916,14 @@ async function runReport() {
     const code = row.reportCode ? String(row.reportCode) : "—";
     const summary = buildReportSummaryBrief(row, lang);
     const att = formatAttendanceCell(row.attendanceIn, row.attendanceOut);
-    tr.innerHTML = `<td>${escAttr(name)}</td><td>${escAttr(row.reportDate)}</td><td dir="ltr" style="text-align:left;">${escAttr(code)}</td><td>${agg.total}</td><td>${agg.avg != null ? agg.avg + "%" : "—"}</td><td>${escAttr(upd)}</td><td dir="ltr" style="text-align:left;">${escAttr(att)}</td><td class="rep-summary-cell">${escAttr(summary)}</td><td><button type="button" class="btn-table btn-rep-view" data-doc-id="${escAttr(row.id)}">${escAttr(dict.btn_view_report)}</button></td>`;
+    const editBtn = isAdmin()
+      ? `<button type="button" class="btn-table btn-rep-edit" data-owner-uid="${escAttr(row.userId)}" data-date="${escAttr(row.reportDate)}">تعديل</button>`
+      : "";
+    tr.innerHTML = `<td>${escAttr(name)}</td><td>${escAttr(row.reportDate)}</td><td dir="ltr" style="text-align:left;">${escAttr(code)}</td><td>${agg.total}</td><td>${agg.avg != null ? agg.avg + "%" : "—"}</td><td>${escAttr(upd)}</td><td class="col-attendance" dir="ltr" style="text-align:left;">${escAttr(att)}</td><td class="rep-summary-cell">${escAttr(summary)}</td><td><span style="display:inline-flex;gap:6px;flex-wrap:wrap;"><button type="button" class="btn-table btn-rep-view" data-doc-id="${escAttr(row.id)}">${escAttr(dict.btn_view_report)}</button>${editBtn}</span></td>`;
     tbody.appendChild(tr);
   });
   document.getElementById("rep-empty").style.display = list.length ? "none" : "block";
+  setAttendanceColumnsVisibility();
   applyLanguage(lang);
 }
 
@@ -2782,6 +3098,8 @@ async function refreshUsersList() {
 function bindTasksUi() {
   document.getElementById("btn-add-task").addEventListener("click", () => openTaskModalAdd());
   document.getElementById("btn-clear-tasks").addEventListener("click", clearAllTasks);
+  document.getElementById("btn-carry-next-day").addEventListener("click", () => void carryIncompleteToNextDay());
+  document.getElementById("btn-remove-carried").addEventListener("click", removeCarriedTasksFromToday);
   document.getElementById("btn-save-draft").addEventListener("click", () => void saveDraft());
   document.getElementById("btn-confirm-report").addEventListener("click", () => void confirmReport());
   document.getElementById("btn-print").addEventListener("click", printReport);
@@ -2843,8 +3161,60 @@ function bindTasksUi() {
     const lang = document.getElementById("lang-select").value;
     const h = formatHeaderDateFromISO(dateInput.value, lang);
     if (h) document.getElementById("live-date").textContent = h;
+    if (snapshotTimeLocked) {
+      toastI18n("toast_report_locked");
+      // Allow navigation to other dates (read-only); saving/editing remains locked.
+      loadDailySnapshot();
+      return;
+    }
+    // When admin is editing someone else's report, never attempt "move" (it requires delete permission).
+    if (isAdmin() && currentReportOwnerUid && currentReportOwnerUid !== auth.currentUser?.uid) {
+      loadDailySnapshot();
+      return;
+    }
+    if (currentDailySnapExists && currentDailyDocId) {
+      const uid = auth.currentUser?.uid;
+      const newDocId = uid ? dailyDocId(uid, dateInput.value) : null;
+      if (newDocId && newDocId !== currentDailyDocId) {
+        const ok = confirmI18n("confirm_move_report_date");
+        if (!ok) {
+          if (lastReportDateValue) dateInput.value = lastReportDateValue;
+          const hh = formatHeaderDateFromISO(dateInput.value, lang);
+          if (hh) document.getElementById("live-date").textContent = hh;
+          return;
+        }
+        void (async () => {
+          try {
+            await moveReportToDate(dateInput.value);
+            lastReportDateValue = dateInput.value;
+            await loadDailySnapshot();
+            void refreshMyReportsList();
+          } catch (e) {
+            console.error(e);
+            if (e && e.message === "DUPLICATE_DATE") toastI18n("toast_duplicate_date");
+            else showToast("فشل تغيير التاريخ: تحقق من الاتصال أو الصلاحيات");
+            if (lastReportDateValue) dateInput.value = lastReportDateValue;
+            const hh = formatHeaderDateFromISO(dateInput.value, lang);
+            if (hh) document.getElementById("live-date").textContent = hh;
+          }
+        })();
+        return;
+      }
+    }
     loadDailySnapshot();
   });
+
+  const prevBtn = document.getElementById("btn-prev-day");
+  const nextBtn = document.getElementById("btn-next-day");
+  const bumpDay = (delta) => {
+    const cur = document.getElementById("report-date")?.value || todayISO();
+    const dt = isoToLocalMidnight(cur);
+    if (!dt) return;
+    dt.setDate(dt.getDate() + delta);
+    openReportDateISO(dateToISO(dt));
+  };
+  if (prevBtn) prevBtn.addEventListener("click", () => bumpDay(-1));
+  if (nextBtn) nextBtn.addEventListener("click", () => bumpDay(1));
   document.getElementById("lang-select").addEventListener("change", function () {
     applyLanguage(this.value);
     const h = formatHeaderDateFromISO(document.getElementById("report-date").value, this.value);
@@ -2871,6 +3241,7 @@ async function afterAuthRoutine() {
   updateHeaderChrome();
   showScreen("screen-app");
   applyLanguage(document.getElementById("lang-select")?.value || "ar");
+  setAttendanceColumnsVisibility();
   initReportDate();
   void refreshMyReportsList();
   showSection("dashboard");
@@ -2967,11 +3338,25 @@ document.getElementById("users-tbody").addEventListener("click", e => {
 });
 document.getElementById("btn-run-report").addEventListener("click", runReport);
 document.getElementById("rep-tbody").addEventListener("click", e => {
-  const btn = e.target.closest(".btn-rep-view");
-  if (!btn) return;
-  const docId = btn.getAttribute("data-doc-id");
-  if (docId) void openReportPreviewModal(docId);
+  const viewBtn = e.target.closest(".btn-rep-view");
+  if (viewBtn) {
+    const docId = viewBtn.getAttribute("data-doc-id");
+    if (docId) void openReportPreviewModal(docId);
+    return;
+  }
+  const editBtn = e.target.closest(".btn-rep-edit");
+  if (editBtn) {
+    const ownerUid = editBtn.getAttribute("data-owner-uid");
+    const ds = editBtn.getAttribute("data-date");
+    if (!ownerUid || !ds) return;
+    void refreshAllUsers().then(() => openAdminEditModal(ownerUid, ds));
+  }
 });
+
+document.getElementById("admin-edit-modal-close").addEventListener("click", closeAdminEditModal);
+document.getElementById("admin-edit-modal-done").addEventListener("click", closeAdminEditModal);
+document.getElementById("admin-edit-modal-card").addEventListener("click", e => e.stopPropagation());
+document.getElementById("admin-edit-modal").addEventListener("click", closeAdminEditModal);
 document.getElementById("report-preview-close").addEventListener("click", closeReportPreviewModal);
 document.getElementById("report-preview-done").addEventListener("click", closeReportPreviewModal);
 document.getElementById("report-preview-card").addEventListener("click", e => e.stopPropagation());
